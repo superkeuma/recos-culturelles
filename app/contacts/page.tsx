@@ -32,7 +32,7 @@ export default function Contacts() {
   const chargerContacts = async (userId: string) => {
     const { data } = await supabase
       .from('follows')
-      .select('following_id, profiles!follows_following_id_fkey(id, username, full_name)')
+      .select('following_id, profiles!follows_following_id_fkey(id, username)')
       .eq('follower_id', userId)
     if (data) setContacts(data)
   }
@@ -42,7 +42,7 @@ export default function Contacts() {
     if (valeur.length < 2) { setResultats([]); return }
     const { data } = await supabase
       .from('profiles')
-      .select('id, username, full_name')
+      .select('id, username')
       .ilike('username', `%${valeur}%`)
       .neq('id', user.id)
       .limit(5)
@@ -148,26 +148,25 @@ export default function Contacts() {
                 padding: '12px 16px',
                 borderBottom: '1px solid var(--border-light)',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  onClick={() => router.push(`/u/${profil.username}`)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left',
+                  }}
+                >
                   <div style={{
                     width: '36px', height: '36px', borderRadius: '50%',
                     background: 'var(--bg-secondary)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
                   }}>
-                    {initiales(profil.full_name || profil.username)}
+                    {initiales(profil.username)}
                   </div>
-                  <div>
-                    <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                      @{profil.username}
-                    </p>
-                    {profil.full_name && (
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {profil.full_name}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                  <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                    @{profil.username}
+                  </p>
+                </button>
 
                 {estSuivi(profil.id) ? (
                   <span style={{
@@ -224,26 +223,27 @@ export default function Contacts() {
                 padding: '12px 16px',
                 borderBottom: '1px solid var(--border-light)',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  onClick={() => contact.profiles?.username && router.push(`/u/${contact.profiles.username}`)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left',
+                  }}
+                >
                   <div style={{
                     width: '36px', height: '36px', borderRadius: '50%',
                     background: 'var(--bg-secondary)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
                   }}>
-                    {initiales(contact.profiles?.full_name || contact.profiles?.username)}
+                    {initiales(contact.profiles?.username)}
                   </div>
                   <div>
                     <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
                       @{contact.profiles?.username}
                     </p>
-                    {contact.profiles?.full_name && (
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {contact.profiles.full_name}
-                      </p>
-                    )}
                   </div>
-                </div>
+                </button>
 
                 <button
                   onClick={() => nePlusSuivre(contact.following_id)}

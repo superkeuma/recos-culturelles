@@ -3,18 +3,29 @@
 // PAGE SAUVEGARDES — redesign minimaliste
 // ============================================
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import NavBar from '@/components/NavBar'
 import TypeIcon from '@/components/TypeIcon'
-import { X } from 'lucide-react'
+import { X, Bookmark } from 'lucide-react'
 
 export default function Sauvegardes() {
   const [user, setUser] = useState<any>(null)
   const [sauvegardes, setSauvegardes] = useState<any[]>([])
+  const [filtre, setFiltre] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+
+  const categories = useMemo(() => {
+    const types = [...new Set(sauvegardes.map(s => s.recommendations?.type).filter(Boolean))]
+    return types
+  }, [sauvegardes])
+
+  const sauvegardesFiltrees = useMemo(
+    () => filtre ? sauvegardes.filter(s => s.recommendations?.type === filtre) : sauvegardes,
+    [sauvegardes, filtre]
+  )
 
   useEffect(() => {
     const load = async () => {
@@ -70,15 +81,65 @@ export default function Sauvegardes() {
           sauvegardes
         </span>
         <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-          {sauvegardes.length} reco{sauvegardes.length > 1 ? 's' : ''}
+          {sauvegardesFiltrees.length} reco{sauvegardesFiltrees.length > 1 ? 's' : ''}
         </span>
       </header>
 
+      {/* ---- FILTRES ---- */}
+      {categories.length > 1 && (
+        <div style={{
+          position: 'sticky', top: '56px', zIndex: 9,
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid var(--border-light)',
+          maxWidth: '520px', margin: '0 auto',
+        }}>
+          <div style={{
+            display: 'flex', gap: '6px', padding: '10px 16px',
+            overflowX: 'auto', scrollbarWidth: 'none',
+          }}>
+            <button
+              onClick={() => setFiltre(null)}
+              style={{
+                flexShrink: 0, padding: '5px 13px',
+                borderRadius: 'var(--radius-full)', border: 'none', cursor: 'pointer',
+                fontSize: '12px', fontWeight: filtre === null ? 600 : 400,
+                background: filtre === null ? 'var(--accent)' : 'var(--bg-secondary)',
+                color: filtre === null ? '#fff' : 'var(--text-muted)',
+                transition: 'all 0.15s',
+              }}
+            >
+              Tout
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setFiltre(filtre === cat ? null : cat)}
+                style={{
+                  flexShrink: 0, padding: '5px 13px',
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  borderRadius: 'var(--radius-full)', border: 'none', cursor: 'pointer',
+                  fontSize: '12px', fontWeight: filtre === cat ? 600 : 400,
+                  background: filtre === cat ? 'var(--accent)' : 'var(--bg-secondary)',
+                  color: filtre === cat ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <TypeIcon type={cat} size={11} color={filtre === cat ? '#fff' : 'currentColor'} />
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <main style={{ maxWidth: '520px', margin: '0 auto', padding: '16px' }}>
 
-        {sauvegardes.length === 0 ? (
+        {sauvegardesFiltrees.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.3 }}>🔖</div>
+            <div style={{ marginBottom: '12px', opacity: 0.3, display: 'flex', justifyContent: 'center' }}>
+              <Bookmark size={32} strokeWidth={1.5} />
+            </div>
             <p style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>Aucune sauvegarde</p>
             <p style={{ fontSize: '13px', marginTop: '6px' }}>
               Appuie sur "Sauvegarder" sur une reco du feed
@@ -86,7 +147,7 @@ export default function Sauvegardes() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {sauvegardes.map(sauvegarde => {
+            {sauvegardesFiltrees.map(sauvegarde => {
               const reco = sauvegarde.recommendations
               if (!reco) return null
 

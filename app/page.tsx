@@ -4,11 +4,17 @@
 // Design minimaliste blanc pur + bleu nuit
 // ============================================
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import TypeIcon from '@/components/TypeIcon'
 import NavBar from '@/components/NavBar'
+import { Search, Sprout } from 'lucide-react'
+
+const LABELS: Record<string, string> = {
+  film: 'Film', serie: 'Série', musique: 'Musique', livre: 'Livre',
+  podcast: 'Podcast', jeu: 'Jeu', youtube: 'YouTube', spectacle: 'Spectacle', autre: 'Autre',
+}
 
 // --- Formate la date en "il y a X jours" ---
 const formatDate = (date: string) => {
@@ -24,7 +30,18 @@ export default function Feed() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [saved, setSaved] = useState<Set<string>>(new Set())
+  const [filtre, setFiltre] = useState<string | null>(null)
   const router = useRouter()
+
+  const categories = useMemo(() => {
+    const types = [...new Set(recommendations.map(r => r.type))]
+    return types.filter(Boolean)
+  }, [recommendations])
+
+  const recosFiltrees = useMemo(
+    () => filtre ? recommendations.filter(r => r.type === filtre) : recommendations,
+    [recommendations, filtre]
+  )
 
   useEffect(() => {
     const getUser = async () => {
@@ -104,9 +121,7 @@ export default function Feed() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         maxWidth: '520px', margin: '0 auto',
       }}>
-        <span style={{ fontWeight: 700, fontSize: '17px', letterSpacing: '-0.3px', color: 'var(--accent)' }}>
-          recos
-        </span>
+        <img src="/icon.png" alt="recos" style={{ height: '32px' }} />
         <button
           onClick={() => router.push('/nouvelle-reco')}
           style={{
@@ -120,20 +135,79 @@ export default function Feed() {
         </button>
       </header>
 
+      {/* ---- FILTRES ---- */}
+      {categories.length > 1 && (
+        <div style={{
+          position: 'sticky', top: '56px', zIndex: 9,
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid var(--border-light)',
+          maxWidth: '520px', margin: '0 auto',
+        }}>
+          <div style={{
+            display: 'flex', gap: '6px',
+            padding: '10px 16px',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+          }}>
+            {/* Pill "Tout" */}
+            <button
+              onClick={() => setFiltre(null)}
+              style={{
+                flexShrink: 0,
+                padding: '5px 13px',
+                borderRadius: 'var(--radius-full)',
+                border: 'none', cursor: 'pointer',
+                fontSize: '12px', fontWeight: filtre === null ? 600 : 400,
+                background: filtre === null ? 'var(--accent)' : 'var(--bg-secondary)',
+                color: filtre === null ? '#fff' : 'var(--text-muted)',
+                transition: 'all 0.15s',
+              }}
+            >
+              Tout
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setFiltre(filtre === cat ? null : cat)}
+                style={{
+                  flexShrink: 0,
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  padding: '5px 13px',
+                  borderRadius: 'var(--radius-full)',
+                  border: 'none', cursor: 'pointer',
+                  fontSize: '12px', fontWeight: filtre === cat ? 600 : 400,
+                  background: filtre === cat ? 'var(--accent)' : 'var(--bg-secondary)',
+                  color: filtre === cat ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <TypeIcon type={cat} size={11} color={filtre === cat ? '#fff' : 'currentColor'} />
+                {LABELS[cat] ?? cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ---- FEED ---- */}
       <main style={{ maxWidth: '520px', margin: '0 auto', padding: '16px' }}>
-        {recommendations.length === 0 ? (
+        {recosFiltrees.length === 0 ? (
 
           /* ---- ÉTAT VIDE ---- */
           <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '40px', marginBottom: '12px' }}>🌱</div>
-            <p style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>Aucune reco pour l'instant</p>
-            <p style={{ fontSize: '14px', marginTop: '6px' }}>Ajoute des contacts ou partage la première !</p>
+            <div style={{ marginBottom: '12px', opacity: 0.3, display: 'flex', justifyContent: 'center' }}>
+              {filtre ? <Search size={36} strokeWidth={1.5} /> : <Sprout size={36} strokeWidth={1.5} />}
+            </div>
+            <p style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>
+              {filtre ? `Aucune reco de type « ${LABELS[filtre] ?? filtre} »` : "Aucune reco pour l'instant"}
+            </p>
+            {!filtre && <p style={{ fontSize: '14px', marginTop: '6px' }}>Ajoute des contacts ou partage la première !</p>}
           </div>
 
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {recommendations.map(reco => (
+            {recosFiltrees.map(reco => (
 
               /* ---- CARTE RECO ---- */
               <div key={reco.id} style={{
@@ -149,7 +223,14 @@ export default function Feed() {
                   display: 'flex', justifyContent: 'space-between',
                   alignItems: 'center', marginBottom: '10px',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    onClick={() => reco.profiles?.username && router.push(`/u/${reco.profiles.username}`)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      background: 'none', border: 'none', cursor: reco.profiles?.username ? 'pointer' : 'default',
+                      padding: 0,
+                    }}
+                  >
                     {/* Avatar initiales */}
                     <div style={{
                       width: '28px', height: '28px', borderRadius: '50%',
@@ -162,80 +243,69 @@ export default function Feed() {
                     <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
                       {reco.profiles?.full_name || reco.profiles?.username || 'Anonyme'}
                     </span>
-                  </div>
+                  </button>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     {formatDate(reco.created_at)}
                   </span>
                 </div>
 
-               {/* Affiche pleine largeur */}
-                {reco.poster_url && (
-                  <div style={{ margin: '0 -16px 12px', overflow: 'hidden' }}>
+                {/* Contenu principal : miniature + texte */}
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+
+                  {/* Miniature ou icône */}
+                  {reco.poster_url ? (
                     <img
                       src={reco.poster_url}
                       alt={reco.title}
                       style={{
-                        width: '100%',
+                        width: '38%', flexShrink: 0,
                         aspectRatio: '2/3',
-                        objectFit: 'cover',
-                        objectPosition: 'center top',
-                        display: 'block',
+                        objectFit: 'cover', objectPosition: 'center top',
+                        borderRadius: 'var(--radius-sm)',
                       }}
                     />
+                  ) : (
+                    <div style={{
+                      width: '38%', flexShrink: 0,
+                      aspectRatio: '2/3',
+                      background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'var(--text-secondary)',
+                    }}>
+                      <TypeIcon type={reco.type} size={20} />
+                    </div>
+                  )}
+
+                  {/* Texte */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)',
+                      textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px',
+                    }}>
+                      <TypeIcon type={reco.type} size={11} />
+                      {reco.type}
+                    </span>
+                    <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                      {reco.title}
+                    </p>
+                    {reco.creator && (
+                      <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        {reco.creator}
+                      </p>
+                    )}
+                    {reco.comment && (
+                      <p style={{
+                        fontSize: '14px', color: 'var(--text-secondary)',
+                        fontStyle: 'italic', lineHeight: '1.5',
+                        borderLeft: '2px solid var(--border)',
+                        paddingLeft: '10px', marginTop: '8px',
+                      }}>
+                        {reco.comment}
+                      </p>
+                    )}
                   </div>
-                )}
-
-{/* Contenu principal */}
-<div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-
-  {/* Badge emoji si pas d'affiche */}
- {!reco.poster_url && (
-  <div style={{
-    width: '40px', height: '40px', flexShrink: 0,
-    background: 'var(--bg-secondary)',
-    borderRadius: 'var(--radius-sm)',
-    display: 'flex', alignItems: 'center',
-    justifyContent: 'center',
-    color: 'var(--text-secondary)',
-  }}>
-    <TypeIcon type={reco.type} size={18} />
-  </div>
-)}
-
-  {/* Texte */}
-  <div style={{ flex: 1, minWidth: 0 }}>
-  <span style={{
-  display: 'inline-flex', alignItems: 'center', gap: '4px',
-  fontSize: '10px', fontWeight: 600,
-  color: 'var(--text-muted)',
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  marginBottom: '3px',
-}}>
-  <TypeIcon type={reco.type} size={11} />
-  {reco.type}
-</span>
-
-<p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px' }}>
-     {reco.title}
-    </p>
-    {reco.creator && (
-      <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-        {reco.creator}
-      </p>
-    )}
-    {reco.comment && (
-      <p style={{
-        fontSize: '14px', color: 'var(--text-secondary)',
-        fontStyle: 'italic', lineHeight: '1.5',
-        borderLeft: '2px solid var(--border)',
-        paddingLeft: '10px', marginTop: '8px',
-      }}>
-        {reco.comment}
-      </p>
-    )}
-  </div>
-</div>
+                </div>
 
                 {/* Pied de carte : lien + sauvegarder */}
                 {(reco.url || reco.user_id !== user?.id) && (
@@ -263,7 +333,7 @@ export default function Feed() {
                           padding: '0',
                         }}
                       >
-                        {saved.has(reco.id) ? '🔖 Sauvegardé' : '🔖 Sauvegarder'}
+                        {saved.has(reco.id) ? 'Sauvegardé' : 'Sauvegarder'}
                       </button>
                     )}
                   </div>

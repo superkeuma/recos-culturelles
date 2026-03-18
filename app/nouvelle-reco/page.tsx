@@ -12,16 +12,16 @@ import RechercheMusique from '@/components/RechercheMusique'
 import RechercheLivres from '@/components/RechercheLivres'
 import RecherchePodcasts from '@/components/RecherchePodcasts'
 import RechercheYouTube from '@/components/RechercheYouTube'
+import TypeIcon from '@/components/TypeIcon'
+import { ArrowLeft, Clock, Send, X } from 'lucide-react'
 
 const TYPES = [
-  { value: 'film',      label: 'Film / Série', emoji: '🎬' },
-  { value: 'musique',   label: 'Musique',      emoji: '🎵' },
-  { value: 'podcast',   label: 'Podcast',      emoji: '🎙️' },
-  { value: 'livre',     label: 'Livre',        emoji: '📚' },
-  { value: 'jeu',       label: 'Jeu vidéo',    emoji: '🎮' },
-  { value: 'youtube',   label: 'YouTube',      emoji: '▶️' },
-  { value: 'spectacle', label: 'Spectacle',    emoji: '🎭' },
-  { value: 'autre',     label: 'Autre',        emoji: '✨' },
+  { value: 'film',      label: 'Film / Série' },
+  { value: 'musique',   label: 'Musique'      },
+  { value: 'podcast',   label: 'Podcast'      },
+  { value: 'livre',     label: 'Livre'        },
+  { value: 'youtube',   label: 'YouTube'      },
+  { value: 'autre',     label: 'Autre'        },
 ]
 
 // Types avec API — pas de saisie manuelle
@@ -39,6 +39,7 @@ export default function NouvelleReco() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [quotaAtteint, setQuotaAtteint] = useState(false)
+  const [fetchingImage, setFetchingImage] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -59,19 +60,30 @@ export default function NouvelleReco() {
     setPosterUrl('')
   }, [type])
 
+  // Auto-fetch og:image quand l'URL change (types manuels uniquement)
+  useEffect(() => {
+    if (!url || !url.startsWith('http')) return
+    const timer = setTimeout(async () => {
+      setFetchingImage(true)
+      try {
+        const res = await fetch(`/api/og-image?url=${encodeURIComponent(url)}`)
+        const data = await res.json()
+        if (data.image) setPosterUrl(data.image)
+      } catch {}
+      setFetchingImage(false)
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [url])
+
   const verifierQuota = async (userId: string) => {
-    const maintenant = new Date()
-    const jourSemaine = maintenant.getDay()
-    const diffLundi = (jourSemaine === 0 ? -6 : 1 - jourSemaine)
-    const lundi = new Date(maintenant)
-    lundi.setDate(maintenant.getDate() + diffLundi)
-    lundi.setHours(0, 0, 0, 0)
+    const debutJour = new Date()
+    debutJour.setHours(0, 0, 0, 0)
 
     const { data } = await supabase
       .from('recommendations')
       .select('id')
       .eq('user_id', userId)
-      .gte('created_at', lundi.toISOString())
+      .gte('created_at', debutJour.toISOString())
       .limit(1)
 
     if (data && data.length > 0) setQuotaAtteint(true)
@@ -88,7 +100,7 @@ export default function NouvelleReco() {
 
   const soumettre = async () => {
     if (!title.trim()) { setMessage('Le titre est obligatoire'); return }
-    if (quotaAtteint) { setMessage('Tu as déjà posté ta reco cette semaine !'); return }
+    if (quotaAtteint) { setMessage("Tu as déjà posté ta reco aujourd'hui !"); return }
 
     setSaving(true)
     setMessage('')
@@ -134,10 +146,10 @@ export default function NouvelleReco() {
           onClick={() => router.back()}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: '14px', color: 'var(--text-secondary)', padding: '0',
+            color: 'var(--text-secondary)', padding: '0', display: 'flex',
           }}
         >
-          ← Retour
+          <ArrowLeft size={20} strokeWidth={1.5} />
         </button>
         <span style={{ fontWeight: 700, fontSize: '16px', color: 'var(--accent)' }}>
           nouvelle reco
@@ -154,12 +166,14 @@ export default function NouvelleReco() {
             borderRadius: 'var(--radius-md)', padding: '16px',
             textAlign: 'center', marginBottom: '20px',
           }}>
-            <p style={{ fontSize: '24px', marginBottom: '6px' }}>⏳</p>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px', color: '#92400e' }}>
+              <Clock size={22} strokeWidth={1.5} />
+            </div>
             <p style={{ fontWeight: 600, color: '#92400e', fontSize: '14px' }}>
-              Tu as déjà partagé ta reco cette semaine
+              Tu as déjà partagé ta reco aujourd'hui
             </p>
             <p style={{ fontSize: '13px', color: '#b45309', marginTop: '4px' }}>
-              Reviens lundi prochain !
+              Reviens demain !
             </p>
           </div>
         )}
@@ -179,7 +193,7 @@ export default function NouvelleReco() {
                 onClick={() => setType(t.value)}
                 style={{
                   padding: '7px 14px',
-                  borderRadius: 'var(--radius-full)',
+                  borderRadius: 'var(--radius-md)',
                   border: `1px solid ${type === t.value ? 'var(--accent)' : 'var(--border)'}`,
                   background: type === t.value ? 'var(--accent)' : 'transparent',
                   color: type === t.value ? '#fff' : 'var(--text-secondary)',
@@ -187,7 +201,8 @@ export default function NouvelleReco() {
                   cursor: 'pointer', transition: 'all 0.15s',
                 }}
               >
-                {t.emoji} {t.label}
+                <TypeIcon type={t.value} size={13} color={type === t.value ? '#fff' : 'currentColor'} />
+                {t.label}
               </button>
             ))}
           </div>
@@ -224,10 +239,10 @@ export default function NouvelleReco() {
               onClick={() => { setTitle(''); setCreator(''); setUrl(''); setPosterUrl('') }}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: '12px', color: 'var(--text-muted)',
+                color: 'var(--text-muted)', display: 'flex',
               }}
             >
-              ✕
+              <X size={15} strokeWidth={1.5} />
             </button>
           </div>
         )}
@@ -259,20 +274,20 @@ export default function NouvelleReco() {
               />
             </div>
 
-            {/* Auteur */}
+            {/* Type de reco */}
             <div style={{ marginBottom: '14px' }}>
               <label style={{
                 display: 'block', fontSize: '11px', fontWeight: 600,
                 color: 'var(--text-muted)', textTransform: 'uppercase',
                 letterSpacing: '0.08em', marginBottom: '6px',
               }}>
-                Auteur / Studio
+                Type de reco
               </label>
               <input
                 type="text"
                 value={creator}
                 onChange={e => setCreator(e.target.value)}
-                placeholder="optionnel"
+                placeholder="ex: concert, exposition, compte insta..."
                 style={{
                   width: '100%', padding: '10px 14px',
                   border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
@@ -290,11 +305,21 @@ export default function NouvelleReco() {
                 letterSpacing: '0.08em', marginBottom: '6px',
               }}>
                 Lien
+                {fetchingImage && (
+                  <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: '8px', color: 'var(--text-muted)' }}>
+                    récupération de l'image...
+                  </span>
+                )}
+                {!fetchingImage && posterUrl && url && (
+                  <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: '8px', color: '#22c55e' }}>
+                    image trouvée ✓
+                  </span>
+                )}
               </label>
               <input
                 type="url"
                 value={url}
-                onChange={e => setUrl(e.target.value)}
+                onChange={e => { setUrl(e.target.value); if (!e.target.value) setPosterUrl('') }}
                 placeholder="https://..."
                 style={{
                   width: '100%', padding: '10px 14px',
@@ -355,7 +380,9 @@ export default function NouvelleReco() {
             transition: 'opacity 0.15s',
           }}
         >
-          {saving ? 'Publication...' : '🎉 Partager ma reco'}
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            {saving ? 'Publication...' : <><Send size={15} strokeWidth={2} />Partager ma reco</>}
+          </span>
         </button>
 
       </main>

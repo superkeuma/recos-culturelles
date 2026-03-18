@@ -8,6 +8,7 @@
 // ============================================
 
 import { useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import RechercheTMDB from '@/components/RechercheTMDB'
@@ -16,7 +17,6 @@ import RechercheLivres from '@/components/RechercheLivres'
 import RecherchePodcasts from '@/components/RecherchePodcasts'
 import RechercheYouTube from '@/components/RechercheYouTube'
 import TypeIcon from '@/components/TypeIcon'
-import { Check } from 'lucide-react'
 
 // --- Types disponibles pour les premières recos ---
 const TYPES = [
@@ -40,6 +40,7 @@ export default function AuthPage() {
   // --- Étape 1 : email / mot de passe ---
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   // --- Étape 2 : pseudo ---
   const [pseudo, setPseudo] = useState('')
@@ -49,7 +50,6 @@ export default function AuthPage() {
   // --- Étape 3 : premières recos ---
   // On propose 3 slots de recos à remplir
   const [recos, setRecos] = useState([recoVide(), recoVide(), recoVide()])
-  const [recoActive, setRecoActive] = useState(0) // index de la reco en cours
 
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -184,15 +184,12 @@ const handleLogin = async () => {
 
         {/* ---- Logo ---- */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--accent)', letterSpacing: '-0.5px' }}>
-            recos
-          </h1>
-          <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '6px' }}>
-            {etape === 'login' ? 'Content de te revoir' :
-             etape === 'inscription' ? 'Crée ton compte' :
-             etape === 'pseudo' ? 'Choisis ton @' :
-             'Tes premiers coups de cœur'}
-          </p>
+          <img src="/icon.png" alt="recos" style={{ height: '96px', margin: '0 auto 4px' }} />
+          {(etape === 'pseudo' || etape === 'recos') && (
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '6px' }}>
+              {etape === 'pseudo' ? 'Choisis ton @' : 'Tes premiers coups de cœur'}
+            </p>
+          )}
         </div>
 
         {/* ======================================
@@ -213,19 +210,31 @@ const handleLogin = async () => {
                 }}
               />
             </div>
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '20px', position: 'relative' }}>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Mot de passe"
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
                 style={{
-                  width: '100%', padding: '12px 14px',
+                  width: '100%', padding: '12px 44px 12px 14px',
                   border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
                   fontSize: '15px', outline: 'none', color: 'var(--text-primary)',
+                  boxSizing: 'border-box',
                 }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                style={{
+                  position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-muted)', display: 'flex', padding: 0,
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
 
             {message && <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', marginBottom: '12px' }}>{message}</p>}
@@ -270,18 +279,30 @@ const handleLogin = async () => {
                 }}
               />
             </div>
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '20px', position: 'relative' }}>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Mot de passe (6 caractères min)"
                 style={{
-                  width: '100%', padding: '12px 14px',
+                  width: '100%', padding: '12px 44px 12px 14px',
                   border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
                   fontSize: '15px', outline: 'none', color: 'var(--text-primary)',
+                  boxSizing: 'border-box',
                 }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                style={{
+                  position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-muted)', display: 'flex', padding: 0,
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
 
             {message && <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', marginBottom: '12px' }}>{message}</p>}
@@ -539,7 +560,7 @@ const handleLogin = async () => {
         fontSize: '15px', fontWeight: 600, cursor: 'pointer',
       }}
     >
-      {loading ? 'Sauvegarde...' : recos.some(r => r.title) ? '🎉 Allons-y !' : 'Passer cette étape →'}
+      {loading ? 'Sauvegarde...' : recos.some(r => r.title) ? 'Allons-y !' : 'Passer cette étape →'}
     </button>
 
   </div>

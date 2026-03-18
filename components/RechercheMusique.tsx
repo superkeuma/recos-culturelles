@@ -8,6 +8,7 @@
 // ============================================
 
 import { useState, useEffect } from 'react'
+import { Mic, Disc2 } from 'lucide-react'
 
 interface ResultatArtiste {
   id: string
@@ -115,26 +116,26 @@ export default function RechercheMusique({ onSelect }: Props) {
     <div className="mb-4">
 
       {/* ---- SÉLECTEUR DE MODE ---- */}
-      <div className="flex gap-2 mb-3">
+      <div className="flex gap-2 mb-6">
         <button
           onClick={() => setMode('artiste')}
-          className={`flex-1 py-1.5 rounded-lg text-sm border transition ${
+          className={`flex-1 py-1.5 rounded text-sm border transition flex items-center justify-center gap-1.5 ${
             mode === 'artiste'
               ? 'bg-black text-white border-black'
               : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
           }`}
         >
-          🎤 Artiste
+          <Mic size={13} strokeWidth={1.5} /> Artiste
         </button>
         <button
           onClick={() => setMode('album')}
-          className={`flex-1 py-1.5 rounded-lg text-sm border transition ${
+          className={`flex-1 py-1.5 rounded text-sm border transition flex items-center justify-center gap-1.5 ${
             mode === 'album'
               ? 'bg-black text-white border-black'
               : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
           }`}
         >
-          💿 Album / Morceau
+          <Disc2 size={13} strokeWidth={1.5} /> Album / Morceau
         </button>
       </div>
 
@@ -149,7 +150,7 @@ export default function RechercheMusique({ onSelect }: Props) {
               ? 'ex: Daft Punk, Angèle, PNL...'
               : 'ex: Random Access Memories, Thriller...'
           }
-          className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black text-sm"
+          className="w-full border rounded-none px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black text-sm"
         />
         {loading && (
           <span className="absolute right-3 top-2.5 text-xs text-gray-400">
@@ -160,7 +161,7 @@ export default function RechercheMusique({ onSelect }: Props) {
 
       {/* ---- RÉSULTATS ARTISTES ---- */}
       {mode === 'artiste' && resultats.length > 0 && (
-        <div className="mt-1 border rounded-xl overflow-hidden shadow-sm bg-white">
+        <div className="mt-1 border rounded-none overflow-hidden shadow-sm bg-white">
           {(resultats as ResultatArtiste[]).map(artiste => (
             <button
               key={artiste.id}
@@ -168,8 +169,8 @@ export default function RechercheMusique({ onSelect }: Props) {
               className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition border-b last:border-0 text-left"
             >
               {/* Avatar placeholder */}
-              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg flex-shrink-0">
-                🎤
+              <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-400">
+                <Mic size={16} strokeWidth={1.5} />
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-900">{artiste.name}</p>
@@ -185,7 +186,7 @@ export default function RechercheMusique({ onSelect }: Props) {
 
       {/* ---- RÉSULTATS ALBUMS ---- */}
       {mode === 'album' && resultats.length > 0 && (
-        <div className="mt-1 border rounded-xl overflow-hidden shadow-sm bg-white">
+        <div className="mt-1 border rounded-none overflow-hidden shadow-sm bg-white">
           {(resultats as ResultatAlbum[]).map(album => {
             const artiste = album['artist-credit']?.[0]?.artist?.name || ''
             const annee = (album.date || '').slice(0, 4)
@@ -207,7 +208,7 @@ export default function RechercheMusique({ onSelect }: Props) {
                 <div>
                   <p className="text-sm font-medium text-gray-900">{album.title}</p>
                   <p className="text-xs text-gray-400">
-                    💿 {artiste}{annee ? ` · ${annee}` : ''}
+                    {artiste}{annee ? ` · ${annee}` : ''}
                   </p>
                 </div>
               </button>
