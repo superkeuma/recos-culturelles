@@ -1,28 +1,32 @@
 'use client'
 // ============================================
-// PAGE NOUVELLE RECOMMANDATION
-// Permet de poster une reco culturelle
-// Vérifie le quota : 1 reco max par semaine
-// Pour l'instant : saisie manuelle du titre
-// (les APIs TMDB, YouTube etc. seront
-//  intégrées dans une prochaine étape)
+// PAGE NOUVELLE RECOMMANDATION — v2
+// Même fonctionnalité qu'avant + intégration
+// des APIs externes :
+// - TMDB pour films et séries (avec recherche)
+// - Saisie manuelle pour les autres types
+// Les APIs YouTube, Spotify etc. seront
+// ajoutées de la même façon ensuite.
 // ============================================
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import RechercheTMDB from '@/components/RechercheTMDB'
+import RechercheMusique from '@/components/RechercheMusique'
+import RechercheLivres from '@/components/RechercheLivres'
+import RecherchePodcasts from '@/components/RecherchePodcasts'
 
-// --- Liste des types de recommandations disponibles ---
+// --- Liste des types de recommandations ---
 const TYPES = [
-  { value: 'film',      label: 'Film',      emoji: '🎬' },
-  { value: 'serie',     label: 'Série',     emoji: '📺' },
-  { value: 'musique',   label: 'Musique',   emoji: '🎵' },
-  { value: 'podcast',   label: 'Podcast',   emoji: '🎙️' },
-  { value: 'livre',     label: 'Livre',     emoji: '📚' },
-  { value: 'jeu',       label: 'Jeu vidéo', emoji: '🎮' },
-  { value: 'youtube',   label: 'YouTube',   emoji: '▶️' },
-  { value: 'spectacle', label: 'Spectacle', emoji: '🎭' },
-  { value: 'autre',     label: 'Autre',     emoji: '✨' },
+  { value: 'film',      label: 'Film / Série', emoji: '🎬' },
+  { value: 'musique',   label: 'Musique',      emoji: '🎵' },
+  { value: 'podcast',   label: 'Podcast',      emoji: '🎙️' },
+  { value: 'livre',     label: 'Livre',        emoji: '📚' },
+  { value: 'jeu',       label: 'Jeu vidéo',    emoji: '🎮' },
+  { value: 'youtube',   label: 'YouTube',      emoji: '▶️' },
+  { value: 'spectacle', label: 'Spectacle',    emoji: '🎭' },
+  { value: 'autre',     label: 'Autre',        emoji: '✨' },
 ]
 
 export default function NouvelleReco() {
@@ -32,6 +36,7 @@ export default function NouvelleReco() {
   const [title, setTitle] = useState('')
   const [creator, setCreator] = useState('')
   const [url, setUrl] = useState('')
+  const [posterUrl, setPosterUrl] = useState('')
   const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -39,7 +44,7 @@ export default function NouvelleReco() {
   const [quotaAtteint, setQuotaAtteint] = useState(false)
   const router = useRouter()
 
-  // --- Au chargement : vérifie connexion + quota hebdomadaire ---
+  // --- Au chargement : vérifie connexion + quota ---
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -54,18 +59,24 @@ export default function NouvelleReco() {
     load()
   }, [])
 
-  // --- Vérifie si l'utilisateur a déjà posté une reco cette semaine ---
-  // La semaine commence le lundi à 00h00
+  // --- Quand on change de type, on vide les champs ---
+  // Évite d'avoir des données d'un film dans une reco musique
+  useEffect(() => {
+    setTitle('')
+    setCreator('')
+    setUrl('')
+    setPosterUrl('')
+  }, [type])
+
+  // --- Vérifie le quota hebdomadaire (1 reco par semaine) ---
   const verifierQuota = async (userId: string) => {
-    // Calcule le début de la semaine courante (lundi)
     const maintenant = new Date()
-    const jourSemaine = maintenant.getDay() // 0=dimanche, 1=lundi...
+    const jourSemaine = maintenant.getDay()
     const diffLundi = (jourSemaine === 0 ? -6 : 1 - jourSemaine)
     const lundi = new Date(maintenant)
     lundi.setDate(maintenant.getDate() + diffLundi)
     lundi.setHours(0, 0, 0, 0)
 
-    // Cherche une reco postée après ce lundi
     const { data } = await supabase
       .from('recommendations')
       .select('id')
@@ -73,12 +84,24 @@ export default function NouvelleReco() {
       .gte('created_at', lundi.toISOString())
       .limit(1)
 
-    if (data && data.length > 0) {
-      setQuotaAtteint(true)
-    }
+    if (data && data.length > 0) setQuotaAtteint(true)
   }
 
-  // --- Soumet la nouvelle recommandation ---
+  // --- Appelé quand l'utilisateur sélectionne un résultat TMDB ---
+  // Remplit automatiquement les champs titre, année, url, poster
+  const handleSelectTMDB = (resultat: {
+    title: string
+    creator: string
+    url: string
+    posterUrl: string
+  }) => {
+    setTitle(resultat.title)
+    setCreator(resultat.creator)
+    setUrl(resultat.url)
+    setPosterUrl(resultat.posterUrl)
+  }
+
+  // --- Soumet la recommandation ---
   const soumettre = async () => {
     if (!title.trim()) {
       setMessage('Le titre est obligatoire')
@@ -106,7 +129,6 @@ export default function NouvelleReco() {
     if (error) {
       setMessage('Erreur : ' + error.message)
     } else {
-      // Reco postée avec succès → retour au feed
       router.push('/')
     }
     setSaving(false)
@@ -123,20 +145,16 @@ export default function NouvelleReco() {
 
       {/* ---- HEADER ---- */}
       <header className="bg-white border-b px-4 py-3 flex justify-between items-center max-w-lg mx-auto">
-        <button
-          onClick={() => router.back()}
-          className="text-gray-400 hover:text-gray-600"
-        >
+        <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600">
           ← Retour
         </button>
         <h1 className="text-lg font-bold">Nouvelle reco</h1>
-        <div className="w-12" /> {/* Espace vide pour centrer le titre */}
+        <div className="w-12" />
       </header>
 
       <main className="max-w-lg mx-auto py-6 px-4">
 
-        {/* ---- BLOC QUOTA ATTEINT ---- */}
-        {/* Affiché si l'utilisateur a déjà posté cette semaine */}
+        {/* ---- QUOTA ATTEINT ---- */}
         {quotaAtteint && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-center">
             <p className="text-2xl mb-1">⏳</p>
@@ -147,10 +165,9 @@ export default function NouvelleReco() {
           </div>
         )}
 
-        {/* ---- FORMULAIRE ---- */}
         <div className="bg-white rounded-xl p-6 shadow-sm border">
 
-          {/* Sélecteur de type — grille de boutons */}
+          {/* ---- SÉLECTEUR DE TYPE ---- */}
           <div className="mb-5">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Type de recommandation
@@ -172,68 +189,125 @@ export default function NouvelleReco() {
             </div>
           </div>
 
-          {/* Titre — obligatoire */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Titre <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder={
-                type === 'film' ? 'ex: Parasite' :
-                type === 'musique' ? 'ex: Random Access Memories' :
-                type === 'livre' ? 'ex: L\'Étranger' :
-                type === 'podcast' ? 'ex: Splash' :
-                'Titre...'
-              }
-              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black text-sm"
-              disabled={quotaAtteint}
-            />
-          </div>
+          {/* ---- RECHERCHE TMDB (films et séries uniquement) ---- */}
+          {/* Pour les autres types, on garde la saisie manuelle */}
+    {type === 'film' && !quotaAtteint && (
+  <RechercheTMDB
+    onSelect={handleSelectTMDB}
+  />
+)}
 
-          {/* Auteur / Artiste / Réalisateur — optionnel */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {type === 'film' || type === 'serie' ? 'Réalisateur·ice' :
-               type === 'musique' ? 'Artiste' :
-               type === 'livre' ? 'Auteur·ice' :
-               type === 'podcast' ? 'Créateur·ice' :
-               'Auteur / Artiste'}
-              <span className="text-gray-400 font-normal"> (optionnel)</span>
-            </label>
-            <input
-              type="text"
-              value={creator}
-              onChange={e => setCreator(e.target.value)}
-              placeholder="ex: Bong Joon-ho"
-              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black text-sm"
-              disabled={quotaAtteint}
-            />
-          </div>
+    {type === 'musique' && !quotaAtteint && (
+    <RechercheMusique
+        onSelect={handleSelectTMDB}
+    />
+    )}
 
-          {/* Lien externe — optionnel */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Lien
-              <span className="text-gray-400 font-normal"> (optionnel)</span>
-            </label>
-            <input
-              type="url"
-              value={url}
-              onChange={e => setUrl(e.target.value)}
-              placeholder="https://..."
-              className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black text-sm"
-              disabled={quotaAtteint}
+    {type === 'livre' && !quotaAtteint && (
+            <RechercheLivres
+                onSelect={handleSelectTMDB}
             />
-          </div>
+            )}
 
-          {/* Commentaire personnel — le cœur de la reco */}
+
+            {type === 'podcast' && !quotaAtteint && (
+  <RecherchePodcasts
+    onSelect={handleSelectTMDB}
+  />
+)}
+          {/* ---- APERÇU DE L'AFFICHE (si sélection TMDB) ---- */}
+          {posterUrl && (
+            <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
+              <img
+                src={posterUrl}
+                alt={title}
+                className="w-12 h-18 object-cover rounded"
+              />
+              <div>
+                <p className="font-medium text-sm">{title}</p>
+                <p className="text-xs text-gray-400">{creator}</p>
+                <button
+                  onClick={() => { setTitle(''); setCreator(''); setUrl(''); setPosterUrl('') }}
+                  className="text-xs text-gray-300 hover:text-red-400 mt-1"
+                >
+                  Changer
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ---- CHAMPS MANUELS ---- */}
+          {/* Toujours visibles pour les types sans API */}
+          {/* Masqués pour film/série si une affiche est déjà sélectionnée */}
+{!(type === 'film') && !(type === 'musique') && !(type === 'livre') && !(type === 'podcast') && (
+
+            <div>
+              {/* Titre */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Titre <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  placeholder={
+                    type === 'musique' ? 'ex: Random Access Memories' :
+                    type === 'livre' ? "ex: L'Étranger" :
+                    type === 'podcast' ? 'ex: Splash' :
+                    type === 'youtube' ? 'ex: Nom de la chaîne ou vidéo' :
+                    type === 'spectacle' ? 'ex: Hamilton' :
+                    'Titre...'
+                  }
+                  className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                  disabled={quotaAtteint}
+                />
+              </div>
+
+              {/* Auteur / Artiste */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {type === 'musique' ? 'Artiste' :
+                   type === 'livre' ? 'Auteur·ice' :
+                   type === 'podcast' ? 'Créateur·ice' :
+                   type === 'youtube' ? 'Chaîne' :
+                   'Auteur / Artiste'}
+                  <span className="text-gray-400 font-normal"> (optionnel)</span>
+                </label>
+                <input
+                  type="text"
+                  value={creator}
+                  onChange={e => setCreator(e.target.value)}
+                  placeholder="ex: Daft Punk"
+                  className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                  disabled={quotaAtteint}
+                />
+              </div>
+
+              {/* Lien */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Lien
+                  <span className="text-gray-400 font-normal"> (optionnel)</span>
+                </label>
+                <input
+                  type="url"
+                  value={url}
+                  onChange={e => setUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                  disabled={quotaAtteint}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ---- COMMENTAIRE PERSONNEL ---- */}
+          {/* Toujours visible — c'est le cœur de la reco */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Ton commentaire
-              <span className="text-gray-400 font-normal"> (optionnel mais recommandé !)</span>
+              <span className="text-gray-400 font-normal"> (recommandé !)</span>
             </label>
             <textarea
               value={comment}
@@ -250,7 +324,7 @@ export default function NouvelleReco() {
             <p className="text-sm text-red-400 text-center mb-4">{message}</p>
           )}
 
-          {/* Bouton soumettre */}
+          {/* ---- BOUTON SOUMETTRE ---- */}
           <button
             onClick={soumettre}
             disabled={saving || quotaAtteint}
@@ -262,6 +336,7 @@ export default function NouvelleReco() {
           >
             {saving ? 'Publication...' : '🎉 Partager ma reco'}
           </button>
+
         </div>
       </main>
 
