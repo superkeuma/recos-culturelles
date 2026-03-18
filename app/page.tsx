@@ -7,18 +7,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-
-const TYPE_EMOJI: Record<string, string> = {
-  musique: '🎵',
-  film: '🎬',
-  livre: '📚',
-  podcast: '🎙️',
-  serie: '📺',
-  jeu: '🎮',
-  youtube: '▶️',
-  spectacle: '🎭',
-  autre: '✨',
-}
+import TypeIcon from '@/components/TypeIcon'
+import NavBar from '@/components/NavBar'
 
 // --- Formate la date en "il y a X jours" ---
 const formatDate = (date: string) => {
@@ -178,52 +168,56 @@ export default function Feed() {
                   </span>
                 </div>
 
-                        {/* Affiche pleine largeur */}
-                        {reco.poster_url && (
-                          <div style={{ margin: '0 -16px 12px' }}>
-                            <img
-                              src={reco.poster_url}
-                              alt={reco.title}
-                              style={{
-                                width: '100%',
-                                objectFit: 'contain',
-                                display: 'block',
-                                background: '#000',
-                              }}
-                            />
-                          </div>
-                        )}
+               {/* Affiche pleine largeur */}
+                {reco.poster_url && (
+                  <div style={{ margin: '0 -16px 12px', overflow: 'hidden' }}>
+                    <img
+                      src={reco.poster_url}
+                      alt={reco.title}
+                      style={{
+                        width: '100%',
+                        aspectRatio: '2/3',
+                        objectFit: 'cover',
+                        objectPosition: 'center top',
+                        display: 'block',
+                      }}
+                    />
+                  </div>
+                )}
 
 {/* Contenu principal */}
 <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
 
   {/* Badge emoji si pas d'affiche */}
-  {!reco.poster_url && (
-    <div style={{
-      width: '40px', height: '40px', flexShrink: 0,
-      background: 'var(--bg-secondary)',
-      borderRadius: 'var(--radius-sm)',
-      display: 'flex', alignItems: 'center',
-      justifyContent: 'center', fontSize: '18px',
-    }}>
-      {TYPE_EMOJI[reco.type] || '✨'}
-    </div>
-  )}
+ {!reco.poster_url && (
+  <div style={{
+    width: '40px', height: '40px', flexShrink: 0,
+    background: 'var(--bg-secondary)',
+    borderRadius: 'var(--radius-sm)',
+    display: 'flex', alignItems: 'center',
+    justifyContent: 'center',
+    color: 'var(--text-secondary)',
+  }}>
+    <TypeIcon type={reco.type} size={18} />
+  </div>
+)}
 
   {/* Texte */}
   <div style={{ flex: 1, minWidth: 0 }}>
-    <span style={{
-      display: 'inline-block',
-      fontSize: '10px', fontWeight: 600,
-      color: 'var(--text-muted)',
-      textTransform: 'uppercase',
-      letterSpacing: '0.06em',
-      marginBottom: '3px',
-    }}>
-      {TYPE_EMOJI[reco.type]} {reco.type}
-    </span>
-    <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px' }}>
-      {reco.title}
+  <span style={{
+  display: 'inline-flex', alignItems: 'center', gap: '4px',
+  fontSize: '10px', fontWeight: 600,
+  color: 'var(--text-muted)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  marginBottom: '3px',
+}}>
+  <TypeIcon type={reco.type} size={11} />
+  {reco.type}
+</span>
+
+<p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px' }}>
+     {reco.title}
     </p>
     {reco.creator && (
       <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
@@ -281,36 +275,9 @@ export default function Feed() {
       </main>
 
       {/* ---- BARRE DE NAVIGATION BAS ---- */}
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: 'rgba(255,255,255,0.95)',
-        backdropFilter: 'blur(12px)',
-        borderTop: '1px solid var(--border-light)',
-        display: 'flex', justifyContent: 'space-around',
-        padding: '10px 0 14px',
-        maxWidth: '520px', margin: '0 auto',
-      }}>
-        {[
-          { icon: '🏠', path: '/' },
-          { icon: '➕', path: '/nouvelle-reco' },
-          { icon: '🔖', path: '/sauvegardes' },
-          { icon: '👥', path: '/contacts' },
-          { icon: '👤', path: '/profil' },
-        ].map(item => (
-          <button
-            key={item.path}
-            onClick={() => router.push(item.path)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: '22px', padding: '4px 12px',
-              opacity: typeof window !== 'undefined' && window.location.pathname === item.path ? 1 : 0.4,
-            }}
-          >
-            {item.icon}
-          </button>
-        ))}
-      </nav>
+      <NavBar current="/" router={router} />
 
     </div>
   )
 }
+

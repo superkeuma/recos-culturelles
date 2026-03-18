@@ -1,30 +1,25 @@
 'use client'
 // ============================================
 // COMPOSANT RECHERCHE TMDB
-// Barre de recherche qui interroge l'API TMDB
-// en temps réel et affiche les résultats
-// avec affiches et infos.
-// Utilisé dans la page nouvelle-reco pour
-// les types "film" et "serie".
+// Recherche films ET séries simultanément
+// via l'endpoint "multi" de TMDB.
+// Utilisé pour le type "film" dans
+// la page nouvelle-reco.
 // ============================================
 
 import { useState, useEffect } from 'react'
 
-// --- Type pour un résultat TMDB ---
 interface ResultatTMDB {
   id: number
-  title?: string        // films
-  name?: string         // séries
-  release_date?: string // films
-  first_air_date?: string // séries
+  title?: string
+  name?: string
+  release_date?: string
+  first_air_date?: string
   poster_path?: string
-  overview?: string
-  media_type?: string
+  media_type?: 'movie' | 'tv'
 }
 
-// --- Props du composant ---
 interface Props {
-  type: 'film' | 'serie'
   onSelect: (resultat: {
     title: string
     creator: string
@@ -33,87 +28,84 @@ interface Props {
   }) => void
 }
 
-export default function RechercheTMDB({ type, onSelect }: Props) {
+export default function RechercheTMDB({ onSelect }: Props) {
   const [query, setQuery] = useState('')
   const [resultats, setResultats] = useState<ResultatTMDB[]>([])
   const [loading, setLoading] = useState(false)
 
-  // --- Lance la recherche après 400ms sans frappe (debounce) ---
-  // Évite d'envoyer une requête à chaque lettre tapée
+  // --- Debounce : attend 400ms après la dernière frappe ---
   useEffect(() => {
     if (query.length < 2) {
       setResultats([])
       return
     }
-
-    const timer = setTimeout(() => {
-      rechercherTMDB(query)
-    }, 400)
-
+    const timer = setTimeout(() => rechercherTMDB(query), 400)
     return () => clearTimeout(timer)
   }, [query])
 
-  // --- Appel à l'API TMDB ---
-  const rechercherTMDB = async (texte: string) => {
-    setLoading(true)
+  // --- Recherche multi (films + séries en même temps) ---
+const rechercherTMDB = async (texte: string) => {
+  setLoading(true)
 
-    // Choisit le bon endpoint selon le type
-    const endpoint = type === 'film'
-      ? `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(texte)}&language=fr-FR`
-      : `https://api.themoviedb.org/3/search/tv?query=${encodeURIComponent(texte)}&language=fr-FR`
+  // Recherche films ET séries en parallèle
+  const [filmsRes, seriesRes] = await Promise.all([
+    fetch(
+      `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(texte)}&language=fr-FR`,
+      { headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_TOKEN}` } }
+    ),
+    fetch(
+      `https://api.themoviedb.org/3/search/tv?query=${encodeURIComponent(texte)}&language=fr-FR`,
+      { headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_TOKEN}` } }
+    )
+  ])
 
-    const response = await fetch(endpoint, {
-      headers: {
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_TMDB_TOKEN}`,
-        'Content-Type': 'application/json',
-      }
-    })
+  const filmsData = await filmsRes.json()
+  const seriesData = await seriesRes.json()
 
-    const data = await response.json()
-    setResultats(data.results?.slice(0, 6) || [])
-    setLoading(false)
+  // Ajoute media_type manuellement pour différencier
+  const films = (filmsData.results || []).slice(0, 3).map((r: any) => ({ ...r, media_type: 'movie' }))
+  const series = (seriesData.results || []).slice(0, 3).map((r: any) => ({ ...r, media_type: 'tv' }))
+
+  // Alterne films et séries pour un mix équilibré
+  const fusionnes: ResultatTMDB[] = []
+  const max = Math.max(films.length, series.length)
+  for (let i = 0; i < max; i++) {
+    if (films[i]) fusionnes.push(films[i])
+    if (series[i]) fusionnes.push(series[i])
   }
 
-  // --- Quand l'utilisateur clique sur un résultat ---
-  // Remonte les données formatées vers la page parent
+  setResultats(fusionnes.slice(0, 6))
+  setLoading(false)
+}
+
+  // --- Sélection d'un résultat ---
   const selectionner = (resultat: ResultatTMDB) => {
     const titre = resultat.title || resultat.name || ''
     const annee = (resultat.release_date || resultat.first_air_date || '').slice(0, 4)
+    const type = resultat.media_type === 'movie' ? 'movie' : 'tv'
     const posterUrl = resultat.poster_path
       ? `https://image.tmdb.org/t/p/w200${resultat.poster_path}`
       : ''
-    const urlTMDB = type === 'film'
-      ? `https://www.themoviedb.org/movie/${resultat.id}`
-      : `https://www.themoviedb.org/tv/${resultat.id}`
+    const urlTMDB = `https://www.themoviedb.org/${type}/${resultat.id}`
 
-    onSelect({
-      title: titre,
-      creator: annee,   // on met l'année dans le champ creator pour l'instant
-      url: urlTMDB,
-      posterUrl,
-    })
-
-    // Vide la recherche après sélection
+    onSelect({ title: titre, creator: annee, url: urlTMDB, posterUrl })
     setQuery('')
     setResultats([])
   }
 
   return (
     <div className="mb-4">
-
-      {/* ---- BARRE DE RECHERCHE ---- */}
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Rechercher {type === 'film' ? 'un film' : 'une série'}
+        Rechercher un film ou une série
       </label>
       <div className="relative">
         <input
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder={type === 'film' ? 'ex: Parasite, Inception...' : 'ex: The Bear, Severance...'}
+          placeholder="ex: Parasite, The Bear, Inception..."
           className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black text-sm"
         />
-        {/* Indicateur de chargement */}
         {loading && (
           <span className="absolute right-3 top-2.5 text-xs text-gray-400">
             Recherche...
@@ -121,7 +113,7 @@ export default function RechercheTMDB({ type, onSelect }: Props) {
         )}
       </div>
 
-      {/* ---- LISTE DES RÉSULTATS ---- */}
+      {/* ---- RÉSULTATS ---- */}
       {resultats.length > 0 && (
         <div className="mt-1 border rounded-xl overflow-hidden shadow-sm bg-white">
           {resultats.map(resultat => (
@@ -130,26 +122,27 @@ export default function RechercheTMDB({ type, onSelect }: Props) {
               onClick={() => selectionner(resultat)}
               className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition border-b last:border-0 text-left"
             >
-              {/* Affiche / poster */}
+              {/* Affiche */}
               {resultat.poster_path ? (
                 <img
                   src={`https://image.tmdb.org/t/p/w92${resultat.poster_path}`}
                   alt={resultat.title || resultat.name}
-                  className="w-8 h-12 object-cover rounded"
+                  className="w-8 h-12 object-cover rounded flex-shrink-0"
                 />
               ) : (
-                // Placeholder si pas d'affiche
-                <div className="w-8 h-12 bg-gray-100 rounded flex items-center justify-center text-gray-300 text-xs">
+                <div className="w-8 h-12 bg-gray-100 rounded flex items-center justify-center text-gray-300 text-xs flex-shrink-0">
                   ?
                 </div>
               )}
 
-              {/* Titre et année */}
+              {/* Infos */}
               <div>
                 <p className="text-sm font-medium text-gray-900">
                   {resultat.title || resultat.name}
                 </p>
                 <p className="text-xs text-gray-400">
+                  {resultat.media_type === 'movie' ? '🎬 Film' : '📺 Série'}
+                  {' · '}
                   {(resultat.release_date || resultat.first_air_date || '').slice(0, 4)}
                 </p>
               </div>

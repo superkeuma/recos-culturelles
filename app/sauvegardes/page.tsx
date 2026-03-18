@@ -1,43 +1,25 @@
 'use client'
 // ============================================
-// PAGE SAUVEGARDES
-// Affiche toutes les recos que l'utilisateur
-// a sauvegardées depuis le feed.
-// Permet de les retirer de la liste.
+// PAGE SAUVEGARDES — redesign minimaliste
 // ============================================
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-
-// --- Correspondance type → emoji (identique au feed) ---
-const TYPE_EMOJI: Record<string, string> = {
-  musique: '🎵',
-  film: '🎬',
-  livre: '📚',
-  podcast: '🎙️',
-  serie: '📺',
-  jeu: '🎮',
-  youtube: '▶️',
-  spectacle: '🎭',
-  autre: '✨',
-}
+import NavBar from '@/components/NavBar'
+import TypeIcon from '@/components/TypeIcon'
+import { X } from 'lucide-react'
 
 export default function Sauvegardes() {
-  // --- États locaux ---
   const [user, setUser] = useState<any>(null)
   const [sauvegardes, setSauvegardes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  // --- Au chargement : vérifie connexion et charge les sauvegardes ---
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth')
-        return
-      }
+      if (!user) { router.push('/auth'); return }
       setUser(user)
       await chargerSauvegardes(user.id)
       setLoading(false)
@@ -45,124 +27,161 @@ export default function Sauvegardes() {
     load()
   }, [])
 
-  // --- Charge les recos sauvegardées avec le détail de chaque reco ---
   const chargerSauvegardes = async (userId: string) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('saved_recommendations')
       .select(`
-        id,
-        recommendation_id,
+        id, recommendation_id,
         recommendations(
-          id, type, title, creator, url, comment, created_at,
+          id, type, title, creator, url, comment, created_at, poster_url,
           profiles(username, full_name)
         )
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-
-    if (!error && data) setSauvegardes(data)
+    if (data) setSauvegardes(data)
   }
 
-  // --- Retire une reco de la liste de sauvegardes ---
   const retirerSauvegarde = async (sauvegardeId: string) => {
-    await supabase
-      .from('saved_recommendations')
-      .delete()
-      .eq('id', sauvegardeId)
-
-    // Met à jour l'affichage sans recharger toute la page
+    await supabase.from('saved_recommendations').delete().eq('id', sauvegardeId)
     setSauvegardes(prev => prev.filter(s => s.id !== sauvegardeId))
   }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-gray-400">Chargement...</p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Chargement...</p>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '80px' }}>
 
       {/* ---- HEADER ---- */}
-      <header className="bg-white border-b px-4 py-3 flex justify-between items-center max-w-lg mx-auto">
-        <h1 className="text-lg font-bold">🔖 Sauvegardes</h1>
-        <span className="text-sm text-gray-400">
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid var(--border-light)',
+        padding: '0 16px', height: '56px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        maxWidth: '520px', margin: '0 auto',
+      }}>
+        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)' }}>
+          sauvegardes
+        </span>
+        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
           {sauvegardes.length} reco{sauvegardes.length > 1 ? 's' : ''}
         </span>
       </header>
 
-      <main className="max-w-lg mx-auto py-6 px-4">
+      <main style={{ maxWidth: '520px', margin: '0 auto', padding: '16px' }}>
 
-        {/* Message si aucune sauvegarde */}
         {sauvegardes.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <p className="text-4xl mb-3">🔖</p>
-            <p className="font-medium">Aucune sauvegarde pour l'instant</p>
-            <p className="text-sm mt-1">
-              Appuie sur 🔖 sur une reco du feed pour la retrouver ici
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.3 }}>🔖</div>
+            <p style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>Aucune sauvegarde</p>
+            <p style={{ fontSize: '13px', marginTop: '6px' }}>
+              Appuie sur "Sauvegarder" sur une reco du feed
             </p>
           </div>
         ) : (
-
-          /* ---- LISTE DES RECOS SAUVEGARDÉES ---- */
-          <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {sauvegardes.map(sauvegarde => {
-              // Raccourci vers les données de la reco
               const reco = sauvegarde.recommendations
               if (!reco) return null
 
               return (
-                /* ---- CARTE D'UNE RECO SAUVEGARDÉE ---- */
-                <div key={sauvegarde.id} className="bg-white rounded-xl p-4 shadow-sm border">
+                <div key={sauvegarde.id} style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  overflow: 'hidden',
+                }}>
 
-                  {/* Ligne du haut : type + bouton retirer */}
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-                      {TYPE_EMOJI[reco.type] || '✨'} {reco.type}
+                  {/* Affiche pleine largeur */}
+                  {reco.poster_url && (
+                    <img
+                      src={reco.poster_url}
+                      alt={reco.title}
+                      style={{
+                        width: '100%',
+                        aspectRatio: '2/3',
+                        objectFit: 'cover',
+                        objectPosition: 'center top',
+                        display: 'block',
+                      }}
+                    />
+                  )}
+
+                  <div style={{ padding: '14px 16px' }}>
+
+                    {/* Badge type */}
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      fontSize: '10px', fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase', letterSpacing: '0.06em',
+                      marginBottom: '4px',
+                    }}>
+                      <TypeIcon type={reco.type} size={11} />
+                      {reco.type}
                     </span>
-                    <button
-                      onClick={() => retirerSauvegarde(sauvegarde.id)}
-                      className="text-xs text-gray-300 hover:text-red-400 transition"
-                    >
-                      Retirer
-                    </button>
+
+                    {/* Titre */}
+                    <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                      {reco.title}
+                    </p>
+                    {reco.creator && (
+                      <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                        {reco.creator}
+                      </p>
+                    )}
+
+                    {/* Commentaire */}
+                    {reco.comment && (
+                      <p style={{
+                        fontSize: '14px', color: 'var(--text-secondary)',
+                        fontStyle: 'italic', lineHeight: '1.5',
+                        borderLeft: '2px solid var(--border)',
+                        paddingLeft: '10px', marginTop: '8px', marginBottom: '8px',
+                      }}>
+                        {reco.comment}
+                      </p>
+                    )}
+
+                    {/* Pied : auteur + lien + retirer */}
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between',
+                      alignItems: 'center', marginTop: '10px',
+                      paddingTop: '10px', borderTop: '1px solid var(--border-light)',
+                    }}>
+                      <div>
+                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                          par {reco.profiles?.full_name || reco.profiles?.username || 'Anonyme'}
+                        </p>
+                        {reco.url && (
+                          <a href={reco.url} target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
+                            Voir →
+                          </a>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => retirerSauvegarde(sauvegarde.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '4px',
+                          background: 'none', border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-full)',
+                          padding: '5px 12px', fontSize: '12px',
+                          color: 'var(--text-muted)', cursor: 'pointer',
+                        }}
+                      >
+                        <X size={12} />
+                        Retirer
+                      </button>
+                    </div>
                   </div>
-
-                  {/* Titre et créateur */}
-                  <h2 className="font-bold text-gray-900">{reco.title}</h2>
-                  {reco.creator && (
-                    <p className="text-sm text-gray-500">{reco.creator}</p>
-                  )}
-
-                  {/* Commentaire personnel */}
-                  {reco.comment && (
-                    <p className="text-sm text-gray-600 mt-2 italic">
-                      "{reco.comment}"
-                    </p>
-                  )}
-
-                  {/* Lien externe */}
-                  {reco.url && (
-                    <a
-                      href={reco.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-500 hover:underline mt-2 block"
-                    >
-                      Voir le lien →
-                    </a>
-                  )}
-
-                  {/* Pied de carte : auteur + date */}
-                  <div className="flex justify-between items-center mt-3">
-                    <p className="text-xs text-gray-300">
-                      par {reco.profiles?.full_name || reco.profiles?.username || 'Anonyme'}
-                    </p>
-                    <p className="text-xs text-gray-300">
-                      {new Date(reco.created_at).toLocaleDateString('fr-FR')}
-                    </p>
-                  </div>
-
                 </div>
               )
             })}
@@ -170,15 +189,7 @@ export default function Sauvegardes() {
         )}
       </main>
 
-      {/* ---- BARRE DE NAVIGATION BAS ---- */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-3 max-w-lg mx-auto">
-        <button onClick={() => router.push('/')} className="text-2xl">🏠</button>
-        <button onClick={() => router.push('/nouvelle-reco')} className="text-2xl">➕</button>
-        <button onClick={() => router.push('/sauvegardes')} className="text-2xl">🔖</button>
-        <button onClick={() => router.push('/contacts')} className="text-2xl">👥</button>
-        <button onClick={() => router.push('/profil')} className="text-2xl">👤</button>
-      </nav>
-
+      <NavBar current="/sauvegardes" router={router} />
     </div>
   )
 }
