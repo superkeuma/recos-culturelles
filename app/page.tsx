@@ -1,16 +1,13 @@
 'use client'
 // ============================================
-// PAGE D'ACCUEIL — LE FEED
-// Affiche les recommandations des contacts
-// de l'utilisateur connecté, par ordre
-// chronologique inverse (les plus récentes en haut)
+// PAGE D'ACCUEIL — LE FEED (v2 redesign)
+// Design minimaliste blanc pur + bleu nuit
 // ============================================
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
-// --- Correspondance entre type de reco et emoji affiché ---
 const TYPE_EMOJI: Record<string, string> = {
   musique: '🎵',
   film: '🎬',
@@ -23,184 +20,295 @@ const TYPE_EMOJI: Record<string, string> = {
   autre: '✨',
 }
 
+// --- Formate la date en "il y a X jours" ---
+const formatDate = (date: string) => {
+  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 86400000)
+  if (diff === 0) return "aujourd'hui"
+  if (diff === 1) return 'hier'
+  if (diff < 7) return `il y a ${diff} jours`
+  return new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+}
+
 export default function Feed() {
-  // --- États locaux ---
   const [recommendations, setRecommendations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [saved, setSaved] = useState<Set<string>>(new Set())
   const router = useRouter()
 
-  // --- Au chargement : vérifie si l'utilisateur est connecté ---
-  // Si non connecté → redirige vers /auth
-  // Si connecté → charge les recommandations
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth')
-        return
-      }
+      if (!user) { router.push('/auth'); return }
       setUser(user)
       fetchRecommendations(user.id)
+      fetchSaved(user.id)
     }
     getUser()
   }, [])
 
-  // --- Charge les recos des contacts suivis par l'utilisateur ---
-  // Étapes :
-  // 1. Récupère la liste des gens que l'utilisateur suit
-  // 2. Récupère leurs recommandations de la semaine en cours
   const fetchRecommendations = async (userId: string) => {
-    // Étape 1 : qui est-ce que je suis ?
     const { data: followData } = await supabase
       .from('follows')
       .select('following_id')
       .eq('follower_id', userId)
 
-    // Récupère les IDs des contacts + inclut ses propres recos
     const followingIds = followData?.map(f => f.following_id) || []
     const allIds = [...followingIds, userId]
 
-    // Étape 2 : récupère leurs recos (toutes, pas seulement cette semaine)
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('recommendations')
-      .select(`
-        *,
-        profiles(username, full_name)
-      `)
+      .select('*, profiles(username, full_name)')
       .in('user_id', allIds)
       .order('created_at', { ascending: false })
       .limit(50)
 
-    if (!error && data) setRecommendations(data)
+    if (data) setRecommendations(data)
     setLoading(false)
   }
 
-  // --- Sauvegarde une recommandation dans "Ma liste" ---
-  const saveReco = async (recoId: string) => {
-    await supabase
+  // --- Charge les IDs des recos déjà sauvegardées ---
+  const fetchSaved = async (userId: string) => {
+    const { data } = await supabase
       .from('saved_recommendations')
-      .insert({ user_id: user.id, recommendation_id: recoId })
+      .select('recommendation_id')
+      .eq('user_id', userId)
+    if (data) setSaved(new Set(data.map(s => s.recommendation_id)))
   }
 
-  // --- Déconnexion ---
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/auth')
+  // --- Sauvegarde ou retire une reco ---
+  const toggleSave = async (recoId: string) => {
+    if (!user) return
+    if (saved.has(recoId)) {
+      await supabase
+        .from('saved_recommendations')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('recommendation_id', recoId)
+      setSaved(prev => { const s = new Set(prev); s.delete(recoId); return s })
+    } else {
+      await supabase
+        .from('saved_recommendations')
+        .insert({ user_id: user.id, recommendation_id: recoId })
+      setSaved(prev => new Set(prev).add(recoId))
+    }
   }
 
-  // --- Affichage pendant le chargement ---
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-gray-400">Chargement...</p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Chargement...</p>
     </div>
   )
 
-  // --- Rendu principal ---
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '80px' }}>
 
       {/* ---- HEADER ---- */}
-      <header className="bg-white border-b px-4 py-3 flex justify-between items-center max-w-lg mx-auto sticky top-0 z-10">
-        <h1 className="text-lg font-bold">🎵 Recos Culturelles</h1>
-        <div className="flex gap-3 items-center">
-          <button
-            onClick={() => router.push('/nouvelle-reco')}
-            className="bg-black text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition"
-          >
-            + Recommander
-          </button>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-gray-400 hover:text-gray-600"
-          >
-            Déco
-          </button>
-        </div>
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid var(--border-light)',
+        padding: '0 16px',
+        height: '56px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        maxWidth: '520px', margin: '0 auto',
+      }}>
+        <span style={{ fontWeight: 700, fontSize: '17px', letterSpacing: '-0.3px', color: 'var(--accent)' }}>
+          recos
+        </span>
+        <button
+          onClick={() => router.push('/nouvelle-reco')}
+          style={{
+            background: 'var(--accent)', color: '#fff',
+            border: 'none', borderRadius: 'var(--radius-full)',
+            padding: '7px 16px', fontSize: '13px', fontWeight: 600,
+            cursor: 'pointer', letterSpacing: '0.01em',
+          }}
+        >
+          + partager
+        </button>
       </header>
 
-      {/* ---- CONTENU PRINCIPAL ---- */}
-      <main className="max-w-lg mx-auto py-6 px-4">
-
-        {/* Message si aucune reco à afficher */}
+      {/* ---- FEED ---- */}
+      <main style={{ maxWidth: '520px', margin: '0 auto', padding: '16px' }}>
         {recommendations.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <p className="text-4xl mb-3">🌱</p>
-            <p className="font-medium">Aucune recommandation pour l'instant</p>
-            <p className="text-sm mt-1">Ajoute des contacts ou fais ta première reco !</p>
-          </div>
-        ) : (
 
-          /* ---- LISTE DES RECOS ---- */
-          <div className="space-y-4">
+          /* ---- ÉTAT VIDE ---- */
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>🌱</div>
+            <p style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>Aucune reco pour l'instant</p>
+            <p style={{ fontSize: '14px', marginTop: '6px' }}>Ajoute des contacts ou partage la première !</p>
+          </div>
+
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {recommendations.map(reco => (
 
-              /* ---- CARTE D'UNE RECO ---- */
-              <div key={reco.id} className="bg-white rounded-xl p-4 shadow-sm border">
+              /* ---- CARTE RECO ---- */
+              <div key={reco.id} style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '16px',
+                transition: 'border-color 0.15s',
+              }}>
 
-                {/* Ligne du haut : type + date */}
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-                    {TYPE_EMOJI[reco.type] || '✨'} {reco.type}
-                  </span>
-                  <span className="text-xs text-gray-300">
-                    {new Date(reco.created_at).toLocaleDateString('fr-FR')}
+                {/* Ligne auteur + date */}
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  alignItems: 'center', marginBottom: '10px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* Avatar initiales */}
+                    <div style={{
+                      width: '28px', height: '28px', borderRadius: '50%',
+                      background: 'var(--bg-secondary)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)',
+                    }}>
+                      {(reco.profiles?.full_name || reco.profiles?.username || '?')[0].toUpperCase()}
+                    </div>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                      {reco.profiles?.full_name || reco.profiles?.username || 'Anonyme'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    {formatDate(reco.created_at)}
                   </span>
                 </div>
 
-                {/* Titre et créateur */}
-                <h2 className="font-bold text-gray-900">{reco.title}</h2>
-                {reco.creator && (
-                  <p className="text-sm text-gray-500">{reco.creator}</p>
+                        {/* Affiche pleine largeur */}
+                        {reco.poster_url && (
+                          <div style={{ margin: '0 -16px 12px' }}>
+                            <img
+                              src={reco.poster_url}
+                              alt={reco.title}
+                              style={{
+                                width: '100%',
+                                objectFit: 'contain',
+                                display: 'block',
+                                background: '#000',
+                              }}
+                            />
+                          </div>
+                        )}
+
+{/* Contenu principal */}
+<div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+
+  {/* Badge emoji si pas d'affiche */}
+  {!reco.poster_url && (
+    <div style={{
+      width: '40px', height: '40px', flexShrink: 0,
+      background: 'var(--bg-secondary)',
+      borderRadius: 'var(--radius-sm)',
+      display: 'flex', alignItems: 'center',
+      justifyContent: 'center', fontSize: '18px',
+    }}>
+      {TYPE_EMOJI[reco.type] || '✨'}
+    </div>
+  )}
+
+  {/* Texte */}
+  <div style={{ flex: 1, minWidth: 0 }}>
+    <span style={{
+      display: 'inline-block',
+      fontSize: '10px', fontWeight: 600,
+      color: 'var(--text-muted)',
+      textTransform: 'uppercase',
+      letterSpacing: '0.06em',
+      marginBottom: '3px',
+    }}>
+      {TYPE_EMOJI[reco.type]} {reco.type}
+    </span>
+    <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px' }}>
+      {reco.title}
+    </p>
+    {reco.creator && (
+      <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+        {reco.creator}
+      </p>
+    )}
+    {reco.comment && (
+      <p style={{
+        fontSize: '14px', color: 'var(--text-secondary)',
+        fontStyle: 'italic', lineHeight: '1.5',
+        borderLeft: '2px solid var(--border)',
+        paddingLeft: '10px', marginTop: '8px',
+      }}>
+        {reco.comment}
+      </p>
+    )}
+  </div>
+</div>
+
+                {/* Pied de carte : lien + sauvegarder */}
+                {(reco.url || reco.user_id !== user?.id) && (
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between',
+                    alignItems: 'center', marginTop: '12px',
+                    paddingTop: '10px', borderTop: '1px solid var(--border-light)',
+                  }}>
+                    {reco.url ? (
+                      <a href={reco.url} target="_blank" rel="noopener noreferrer" style={{
+                        fontSize: '12px', color: 'var(--accent)',
+                        textDecoration: 'none', fontWeight: 500,
+                      }}>
+                        Voir →
+                      </a>
+                    ) : <span />}
+
+                    {reco.user_id !== user?.id && (
+                      <button
+                        onClick={() => toggleSave(reco.id)}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          fontSize: '13px', color: saved.has(reco.id) ? 'var(--accent)' : 'var(--text-muted)',
+                          fontWeight: saved.has(reco.id) ? 600 : 400,
+                          padding: '0',
+                        }}
+                      >
+                        {saved.has(reco.id) ? '🔖 Sauvegardé' : '🔖 Sauvegarder'}
+                      </button>
+                    )}
+                  </div>
                 )}
-
-                {/* Commentaire personnel */}
-                {reco.comment && (
-                  <p className="text-sm text-gray-600 mt-2 italic">"{reco.comment}"</p>
-                )}
-
-                {/* Lien externe si disponible */}
-                {reco.url && (
-                  <a
-                    href={reco.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-500 hover:underline mt-2 block"
-                  >
-                    Voir le lien →
-                  </a>
-                )}
-
-                {/* Pied de carte : auteur + bouton sauvegarder */}
-                <div className="flex justify-between items-center mt-3">
-                  <p className="text-xs text-gray-300">
-                    par {reco.profiles?.full_name || reco.profiles?.username || 'Anonyme'}
-                  </p>
-                  {/* Bouton sauvegarder — uniquement pour les recos des autres */}
-                  {reco.user_id !== user?.id && (
-                    <button
-                      onClick={() => saveReco(reco.id)}
-                      className="text-xs text-gray-400 hover:text-black transition"
-                    >
-                      🔖 Sauvegarder
-                    </button>
-                  )}
-                </div>
-
               </div>
             ))}
           </div>
         )}
       </main>
 
-      {/* ---- BARRE DE NAVIGATION BAS (mobile) ---- */}
-      {/* À compléter dans les prochaines étapes */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-3 max-w-lg mx-auto">
-        <button onClick={() => router.push('/')} className="text-2xl">🏠</button>
-        <button onClick={() => router.push('/nouvelle-reco')} className="text-2xl">➕</button>
-        <button onClick={() => router.push('/sauvegardes')} className="text-2xl">🔖</button>
-        <button onClick={() => router.push('/contacts')} className="text-2xl">👥</button>
-        <button onClick={() => router.push('/profil')} className="text-2xl">👤</button>
+      {/* ---- BARRE DE NAVIGATION BAS ---- */}
+      <nav style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        background: 'rgba(255,255,255,0.95)',
+        backdropFilter: 'blur(12px)',
+        borderTop: '1px solid var(--border-light)',
+        display: 'flex', justifyContent: 'space-around',
+        padding: '10px 0 14px',
+        maxWidth: '520px', margin: '0 auto',
+      }}>
+        {[
+          { icon: '🏠', path: '/' },
+          { icon: '➕', path: '/nouvelle-reco' },
+          { icon: '🔖', path: '/sauvegardes' },
+          { icon: '👥', path: '/contacts' },
+          { icon: '👤', path: '/profil' },
+        ].map(item => (
+          <button
+            key={item.path}
+            onClick={() => router.push(item.path)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: '22px', padding: '4px 12px',
+              opacity: typeof window !== 'undefined' && window.location.pathname === item.path ? 1 : 0.4,
+            }}
+          >
+            {item.icon}
+          </button>
+        ))}
       </nav>
 
     </div>

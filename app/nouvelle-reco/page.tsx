@@ -116,16 +116,18 @@ export default function NouvelleReco() {
     setSaving(true)
     setMessage('')
 
-    const { error } = await supabase
-      .from('recommendations')
-      .insert({
-        user_id: user.id,
-        type,
-        title: title.trim(),
-        creator: creator.trim() || null,
-        url: url.trim() || null,
-        comment: comment.trim() || null,
-      })
+                
+            const { error } = await supabase
+            .from('recommendations')
+            .insert({
+                user_id: user.id,
+                type,
+                title: title.trim(),
+                creator: creator.trim() || null,
+                url: url.trim() || null,
+                comment: comment.trim() || null,
+                poster_url: posterUrl || null,  // ← ajout de l'affiche/pochette
+            })
 
     if (error) {
       setMessage('Erreur : ' + error.message)
