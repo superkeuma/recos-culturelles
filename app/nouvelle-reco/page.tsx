@@ -16,6 +16,7 @@ import RechercheTMDB from '@/components/RechercheTMDB'
 import RechercheMusique from '@/components/RechercheMusique'
 import RechercheLivres from '@/components/RechercheLivres'
 import RecherchePodcasts from '@/components/RecherchePodcasts'
+import RechercheYouTube from '@/components/RechercheYouTube'
 
 // --- Liste des types de recommandations ---
 const TYPES = [
@@ -215,6 +216,12 @@ export default function NouvelleReco() {
     onSelect={handleSelectTMDB}
   />
 )}
+
+{type === 'youtube' && !quotaAtteint && (
+  <RechercheYouTube
+    onSelect={handleSelectTMDB}
+  />
+)}
           {/* ---- APERÇU DE L'AFFICHE (si sélection TMDB) ---- */}
           {posterUrl && (
             <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
@@ -239,7 +246,7 @@ export default function NouvelleReco() {
           {/* ---- CHAMPS MANUELS ---- */}
           {/* Toujours visibles pour les types sans API */}
           {/* Masqués pour film/série si une affiche est déjà sélectionnée */}
-{!(type === 'film') && !(type === 'musique') && !(type === 'livre') && !(type === 'podcast') && (
+{!(type === 'film') && !(type === 'musique') && !(type === 'livre') && !(type === 'podcast') && !(type === 'youtube') && (
 
             <div>
               {/* Titre */}
