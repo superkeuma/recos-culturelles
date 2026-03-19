@@ -14,6 +14,7 @@ export default function Contacts() {
   const [recherche, setRecherche] = useState('')
   const [resultats, setResultats] = useState<any[]>([])
   const [contacts, setContacts] = useState<any[]>([])
+  const [suggestions, setSuggestions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const router = useRouter()
@@ -23,7 +24,8 @@ export default function Contacts() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
       setUser(user)
-      await chargerContacts(user.id)
+      const mes = await chargerContacts(user.id)
+      await chargerSuggestions(user.id, mes)
       setLoading(false)
     }
     load()
@@ -35,6 +37,38 @@ export default function Contacts() {
       .select('following_id, profiles!follows_following_id_fkey(id, username)')
       .eq('follower_id', userId)
     if (data) setContacts(data)
+    return data || []
+  }
+
+  const chargerSuggestions = async (userId: string, mesContacts: any[]) => {
+    if (mesContacts.length === 0) return
+    const mesContactsIds = mesContacts.map(c => c.following_id)
+
+    // Récupère les contacts de mes contacts
+    const { data } = await supabase
+      .from('follows')
+      .select('following_id, profiles!follows_following_id_fkey(id, username)')
+      .in('follower_id', mesContactsIds)
+      .neq('following_id', userId)
+
+    if (!data) return
+
+    // Filtre ceux que je suis déjà
+    const candidats = data.filter(d =>
+      !mesContactsIds.includes(d.following_id) && d.profiles
+    )
+
+    // Déduplique par following_id
+    const vus = new Set<string>()
+    const uniques = candidats.filter(d => {
+      if (vus.has(d.following_id)) return false
+      vus.add(d.following_id)
+      return true
+    })
+
+    // Mélange et prend 3 max
+    const melanges = uniques.sort(() => Math.random() - 0.5).slice(0, 3)
+    setSuggestions(melanges)
   }
 
   const rechercherUtilisateur = async (valeur: string) => {
@@ -57,7 +91,8 @@ export default function Contacts() {
       .from('follows')
       .insert({ follower_id: user.id, following_id: profileId })
     if (!error) {
-      await chargerContacts(user.id)
+      const mes = await chargerContacts(user.id)
+      await chargerSuggestions(user.id, mes)
       setMessage('Contact ajouté !')
       setTimeout(() => setMessage(''), 2000)
     }
@@ -69,7 +104,8 @@ export default function Contacts() {
       .delete()
       .eq('follower_id', user.id)
       .eq('following_id', profileId)
-    await chargerContacts(user.id)
+    const mes = await chargerContacts(user.id)
+    await chargerSuggestions(user.id, mes)
   }
 
   // --- Initiales pour l'avatar ---
@@ -94,7 +130,7 @@ export default function Contacts() {
         display: 'flex', alignItems: 'center',
         maxWidth: '520px', margin: '0 auto',
       }}>
-        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)' }}>
+        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>
           contacts
         </span>
       </header>
@@ -193,6 +229,66 @@ export default function Contacts() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ---- SUGGESTIONS ---- */}
+        {suggestions.length > 0 && recherche.length < 2 && (
+          <div style={{ marginBottom: '24px' }}>
+            <p style={{
+              fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)',
+              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px',
+            }}>
+              Suggestions
+            </p>
+            <div style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              overflow: 'hidden',
+            }}>
+              {suggestions.map(s => (
+                <div key={s.following_id} style={{
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  borderBottom: '1px solid var(--border-light)',
+                }}>
+                  <button
+                    onClick={() => router.push(`/u/${s.profiles.username}`)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left',
+                    }}
+                  >
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '50%',
+                      background: 'var(--bg-secondary)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
+                    }}>
+                      {initiales(s.profiles.username)}
+                    </div>
+                    <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                      @{s.profiles.username}
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => suivre(s.following_id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '5px',
+                      background: 'var(--accent)', color: '#fff',
+                      border: 'none', borderRadius: 'var(--radius-full)',
+                      padding: '6px 14px', fontSize: '13px', fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <UserPlus size={13} />
+                    Suivre
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

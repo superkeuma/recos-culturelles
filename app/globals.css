@@ -25,7 +25,8 @@
   --radius-lg: 8px;
   --radius-full: 4px;
 
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-title: var(--font-playfair), Georgia, serif;
 }
 
 /* --- Reset de base --- */
@@ -38,6 +39,11 @@ body {
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 700;
 }
 
 /* --- Scrollbar discrète --- */

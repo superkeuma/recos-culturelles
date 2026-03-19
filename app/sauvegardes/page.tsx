@@ -77,7 +77,7 @@ export default function Sauvegardes() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         maxWidth: '520px', margin: '0 auto',
       }}>
-        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)' }}>
+        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>
           sauvegardes
         </span>
         <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
@@ -189,7 +189,7 @@ export default function Sauvegardes() {
                     </span>
 
                     {/* Titre */}
-                    <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                    <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px', fontFamily: 'var(--font-title)' }}>
                       {reco.title}
                     </p>
                     {reco.creator && (

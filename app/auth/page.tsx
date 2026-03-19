@@ -35,7 +35,7 @@ const recoVide = () => ({
 
 export default function AuthPage() {
   // --- Étape courante : 'login' | 'inscription' | 'pseudo' | 'recos' ---
-  const [etape, setEtape] = useState<'login' | 'inscription' | 'pseudo' | 'recos'>('login')
+  const [etape, setEtape] = useState<'login' | 'inscription' | 'pseudo' | 'recos' | 'reset'>('login')
 
   // --- Étape 1 : email / mot de passe ---
   const [email, setEmail] = useState('')
@@ -57,9 +57,23 @@ export default function AuthPage() {
   const router = useRouter()
 
   // ============================================
+  // RESET MOT DE PASSE
+  // ============================================
+  const handleReset = async () => {
+    if (!email) { setMessage("Saisis ton email"); return }
+    setLoading(true)
+    setMessage('')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth`,
+    })
+    setLoading(false)
+    if (error) setMessage("Erreur : " + error.message)
+    else setMessage('✓ Email envoyé ! Vérifie ta boîte mail.')
+  }
+
   // ÉTAPE 1 — CONNEXION
   // ============================================
-const handleLogin = async () => {
+  const handleLogin = async () => {
   if (!email || !password) { setMessage('Remplis tous les champs'); return }
   setLoading(true)
   setMessage('')
@@ -184,7 +198,22 @@ const handleLogin = async () => {
 
         {/* ---- Logo ---- */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <img src="/icon.png" alt="recos" style={{ height: '96px', margin: '0 auto 4px' }} />
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+            <img src="/icon.png" alt="recos" style={{ height: '96px' }} />
+          </div>
+          {(etape === 'login' || etape === 'inscription') && (
+            <div style={{ marginTop: '4px' }}>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7', marginBottom: '6px' }}>
+                reco reco est une application de recommandations culturelles.
+              </p>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7', marginBottom: '6px' }}>
+                Les coups de cœur de tes contacts. Rien de plus. Rien de moins.
+              </p>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--accent)', lineHeight: '1.7' }}>
+                Pas de likes. Pas de bruit. Pas d'algo.<br />Juste des recos.
+              </p>
+            </div>
+          )}
           {(etape === 'pseudo' || etape === 'recos') && (
             <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '6px' }}>
               {etape === 'pseudo' ? 'Choisis ton @' : 'Tes premiers coups de cœur'}
@@ -249,13 +278,71 @@ const handleLogin = async () => {
               {loading ? 'Connexion...' : 'Se connecter'}
             </button>
 
-            <p style={{ textAlign: 'center', fontSize: '14px', color: 'var(--text-muted)' }}>
+            <p style={{ textAlign: 'center', fontSize: '14px', color: 'var(--text-muted)', marginBottom: '10px' }}>
               Pas encore de compte ?{' '}
               <button onClick={() => { setEtape('inscription'); setMessage('') }} style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: 'var(--accent)', fontWeight: 600, fontSize: '14px',
               }}>
                 S'inscrire
+              </button>
+            </p>
+            <p style={{ textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>
+              <button onClick={() => { setEtape('reset'); setMessage('') }} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'underline',
+              }}>
+                Mot de passe oublié ?
+              </button>
+            </p>
+          </div>
+        )}
+
+        {/* ======================================
+            ÉTAPE RESET — MOT DE PASSE OUBLIÉ
+        ====================================== */}
+        {etape === 'reset' && (
+          <div>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', textAlign: 'center', marginBottom: '20px', lineHeight: '1.6' }}>
+              Saisis ton email et on t'envoie un lien pour réinitialiser ton mot de passe.
+            </p>
+            <div style={{ marginBottom: '16px' }}>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="Email"
+                onKeyDown={e => e.key === 'Enter' && handleReset()}
+                style={{
+                  width: '100%', padding: '12px 14px',
+                  border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                  fontSize: '15px', outline: 'none', color: 'var(--text-primary)',
+                }}
+              />
+            </div>
+            {message && (
+              <p style={{
+                color: message.startsWith('✓') ? '#22c55e' : '#ef4444',
+                fontSize: '13px', textAlign: 'center', marginBottom: '12px',
+              }}>
+                {message}
+              </p>
+            )}
+            <button onClick={handleReset} disabled={loading} style={{
+              width: '100%', padding: '13px',
+              background: 'var(--accent)', color: '#fff',
+              border: 'none', borderRadius: 'var(--radius-full)',
+              fontSize: '15px', fontWeight: 600, cursor: 'pointer',
+              marginBottom: '16px',
+            }}>
+              {loading ? 'Envoi...' : 'Envoyer le lien'}
+            </button>
+            <p style={{ textAlign: 'center' }}>
+              <button onClick={() => { setEtape('login'); setMessage('') }} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'underline',
+              }}>
+                Retour à la connexion
               </button>
             </p>
           </div>

@@ -155,7 +155,7 @@ export default function ProfilPublic() {
       >
         <ArrowLeft size={20} />
       </button>
-      <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)', flex: 1 }}>{title}</span>
+      <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)', flex: 1, fontFamily: 'var(--font-title)' }}>{title}</span>
     </header>
   )
 
@@ -226,7 +226,7 @@ export default function ProfilPublic() {
             <TypeIcon type={reco.type} size={11} />
             {reco.type}
           </span>
-          <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px' }}>
+          <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px', fontFamily: 'var(--font-title)' }}>
             {reco.title}
           </p>
           {reco.creator && (
@@ -317,7 +317,7 @@ export default function ProfilPublic() {
             {displayName[0].toUpperCase()}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontWeight: 700, fontSize: '18px', color: 'var(--text-primary)' }}>
+            <p style={{ fontWeight: 700, fontSize: '18px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
               {displayName}
             </p>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
@@ -427,7 +427,7 @@ export default function ProfilPublic() {
                     {(p.full_name || p.username || '?')[0].toUpperCase()}
                   </div>
                   <div>
-                    <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
                       {p.full_name || p.username}
                     </p>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@{p.username}</p>

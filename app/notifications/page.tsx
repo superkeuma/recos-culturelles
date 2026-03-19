@@ -88,7 +88,7 @@ export default function Notifications() {
         >
           <ArrowLeft size={20} />
         </button>
-        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)', flex: 1 }}>
+        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)', flex: 1, fontFamily: 'var(--font-title)' }}>
           notifications
         </span>
       </header>

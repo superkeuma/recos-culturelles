@@ -28,6 +28,7 @@ const formatDate = (date: string) => {
 export default function Feed() {
   const [recommendations, setRecommendations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAbout, setShowAbout] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [saved, setSaved] = useState<Set<string>>(new Set())
   const [filtre, setFiltre] = useState<string | null>(null)
@@ -111,6 +112,54 @@ export default function Feed() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '80px' }}>
 
       {/* ---- HEADER ---- */}
+      {/* ---- MODAL ABOUT ---- */}
+      {showAbout && (
+        <div
+          onClick={() => setShowAbout(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '32px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--bg)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '40px 32px',
+              maxWidth: '360px', width: '100%',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '28px' }}>
+              <img src="/icon.png" alt="recos" style={{ height: '80px' }} />
+            </div>
+            <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.7', marginBottom: '12px' }}>
+              reco reco est une application de recommandations culturelles.
+            </p>
+            <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.7', marginBottom: '20px' }}>
+              Les coups de cœur de tes contacts. Rien de plus. Rien de moins.
+            </p>
+            <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--accent)', lineHeight: '1.7' }}>
+              Pas de likes. Pas de bruit. Pas d'algo.<br />Juste des recos.
+            </p>
+            <button
+              onClick={() => setShowAbout(false)}
+              style={{
+                marginTop: '28px', padding: '10px 28px',
+                background: 'var(--accent)', color: '#fff',
+                border: 'none', borderRadius: 'var(--radius-md)',
+                fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
       <header style={{
         position: 'sticky', top: 0, zIndex: 10,
         background: 'rgba(255,255,255,0.92)',
@@ -118,20 +167,11 @@ export default function Feed() {
         borderBottom: '1px solid var(--border-light)',
         padding: '0 16px',
         height: '56px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
         maxWidth: '520px', margin: '0 auto',
       }}>
-        <img src="/icon.png" alt="recos" style={{ height: '32px' }} />
-        <button
-          onClick={() => router.push('/nouvelle-reco')}
-          style={{
-            background: 'var(--accent)', color: '#fff',
-            border: 'none', borderRadius: 'var(--radius-full)',
-            padding: '7px 16px', fontSize: '13px', fontWeight: 600,
-            cursor: 'pointer', letterSpacing: '0.01em',
-          }}
-        >
-          + partager
+        <button onClick={() => setShowAbout(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+          <img src="/icon.png" alt="recos" style={{ height: '48px' }} />
         </button>
       </header>
 
@@ -286,7 +326,7 @@ export default function Feed() {
                       <TypeIcon type={reco.type} size={11} />
                       {reco.type}
                     </span>
-                    <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                    <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px', fontFamily: 'var(--font-title)' }}>
                       {reco.title}
                     </p>
                     {reco.creator && (

@@ -13,7 +13,7 @@ import RechercheLivres from '@/components/RechercheLivres'
 import RecherchePodcasts from '@/components/RecherchePodcasts'
 import RechercheYouTube from '@/components/RechercheYouTube'
 import TypeIcon from '@/components/TypeIcon'
-import { ArrowLeft, Clock, Send, X } from 'lucide-react'
+import { ArrowLeft, Send, X } from 'lucide-react'
 
 const TYPES = [
   { value: 'film',      label: 'Film / Série' },
@@ -38,7 +38,6 @@ export default function NouvelleReco() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-  const [quotaAtteint, setQuotaAtteint] = useState(false)
   const [fetchingImage, setFetchingImage] = useState(false)
   const router = useRouter()
 
@@ -47,7 +46,6 @@ export default function NouvelleReco() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
       setUser(user)
-      await verifierQuota(user.id)
       setLoading(false)
     }
     load()
@@ -75,20 +73,6 @@ export default function NouvelleReco() {
     return () => clearTimeout(timer)
   }, [url])
 
-  const verifierQuota = async (userId: string) => {
-    const debutJour = new Date()
-    debutJour.setHours(0, 0, 0, 0)
-
-    const { data } = await supabase
-      .from('recommendations')
-      .select('id')
-      .eq('user_id', userId)
-      .gte('created_at', debutJour.toISOString())
-      .limit(1)
-
-    if (data && data.length > 0) setQuotaAtteint(true)
-  }
-
   const handleSelect = (resultat: {
     title: string, creator: string, url: string, posterUrl: string
   }) => {
@@ -100,8 +84,6 @@ export default function NouvelleReco() {
 
   const soumettre = async () => {
     if (!title.trim()) { setMessage('Le titre est obligatoire'); return }
-    if (quotaAtteint) { setMessage("Tu as déjà posté ta reco aujourd'hui !"); return }
-
     setSaving(true)
     setMessage('')
 
@@ -151,32 +133,13 @@ export default function NouvelleReco() {
         >
           <ArrowLeft size={20} strokeWidth={1.5} />
         </button>
-        <span style={{ fontWeight: 700, fontSize: '16px', color: 'var(--accent)' }}>
+        <span style={{ fontWeight: 700, fontSize: '16px', color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>
           nouvelle reco
         </span>
         <div style={{ width: '60px' }} />
       </header>
 
       <main style={{ maxWidth: '520px', margin: '0 auto', padding: '24px 16px' }}>
-
-        {/* ---- QUOTA ATTEINT ---- */}
-        {quotaAtteint && (
-          <div style={{
-            background: '#fffbeb', border: '1px solid #fde68a',
-            borderRadius: 'var(--radius-md)', padding: '16px',
-            textAlign: 'center', marginBottom: '20px',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px', color: '#92400e' }}>
-              <Clock size={22} strokeWidth={1.5} />
-            </div>
-            <p style={{ fontWeight: 600, color: '#92400e', fontSize: '14px' }}>
-              Tu as déjà partagé ta reco aujourd'hui
-            </p>
-            <p style={{ fontSize: '13px', color: '#b45309', marginTop: '4px' }}>
-              Reviens demain !
-            </p>
-          </div>
-        )}
 
         {/* ---- SÉLECTEUR DE TYPE ---- */}
         <div style={{ marginBottom: '24px' }}>
@@ -209,15 +172,13 @@ export default function NouvelleReco() {
         </div>
 
         {/* ---- RECHERCHE API ---- */}
-        {!quotaAtteint && (
-          <div style={{ marginBottom: '8px' }}>
-            {type === 'film' && <RechercheTMDB onSelect={handleSelect} />}
-            {type === 'musique' && <RechercheMusique onSelect={handleSelect} />}
-            {type === 'podcast' && <RecherchePodcasts onSelect={handleSelect} />}
-            {type === 'livre' && <RechercheLivres onSelect={handleSelect} />}
-            {type === 'youtube' && <RechercheYouTube onSelect={handleSelect} />}
-          </div>
-        )}
+        <div style={{ marginBottom: '8px' }}>
+          {type === 'film' && <RechercheTMDB onSelect={handleSelect} />}
+          {type === 'musique' && <RechercheMusique onSelect={handleSelect} />}
+          {type === 'podcast' && <RecherchePodcasts onSelect={handleSelect} />}
+          {type === 'livre' && <RechercheLivres onSelect={handleSelect} />}
+          {type === 'youtube' && <RechercheYouTube onSelect={handleSelect} />}
+        </div>
 
         {/* ---- APERÇU SÉLECTION ---- */}
         {posterUrl && (
@@ -232,7 +193,7 @@ export default function NouvelleReco() {
               style={{ width: '44px', height: '60px', objectFit: 'cover', borderRadius: '6px' }}
             />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>{title}</p>
+              <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>{title}</p>
               {creator && <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{creator}</p>}
             </div>
             <button
@@ -248,7 +209,7 @@ export default function NouvelleReco() {
         )}
 
         {/* ---- SAISIE MANUELLE (types sans API) ---- */}
-        {!TYPES_AVEC_API.includes(type) && !quotaAtteint && (
+        {!TYPES_AVEC_API.includes(type) && (
           <div style={{ marginBottom: '20px' }}>
 
             {/* Titre */}
@@ -333,8 +294,7 @@ export default function NouvelleReco() {
         )}
 
         {/* ---- COMMENTAIRE ---- */}
-        {!quotaAtteint && (
-          <div style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: '24px' }}>
             <label style={{
               display: 'block', fontSize: '11px', fontWeight: 600,
               color: 'var(--text-muted)', textTransform: 'uppercase',
@@ -356,8 +316,7 @@ export default function NouvelleReco() {
                 fontFamily: 'var(--font)',
               }}
             />
-          </div>
-        )}
+        </div>
 
         {/* Message erreur */}
         {message && (
@@ -369,14 +328,14 @@ export default function NouvelleReco() {
         {/* ---- BOUTON PUBLIER ---- */}
         <button
           onClick={soumettre}
-          disabled={saving || quotaAtteint}
+          disabled={saving}
           style={{
             width: '100%', padding: '13px',
-            background: quotaAtteint ? 'var(--bg-secondary)' : 'var(--accent)',
-            color: quotaAtteint ? 'var(--text-muted)' : '#fff',
+            background: 'var(--accent)',
+            color: '#fff',
             border: 'none', borderRadius: 'var(--radius-full)',
             fontSize: '15px', fontWeight: 600,
-            cursor: quotaAtteint ? 'not-allowed' : 'pointer',
+            cursor: 'pointer',
             transition: 'opacity 0.15s',
           }}
         >

@@ -36,6 +36,8 @@ export default function Profil() {
   const [showPassword, setShowPassword] = useState(false)
   const [msgDisplayName, setMsgDisplayName] = useState('')
   const [msgPassword, setMsgPassword] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
 
   const router = useRouter()
 
@@ -127,6 +129,19 @@ export default function Profil() {
     setSavingPassword(false)
   }
 
+  const handleDeleteAccount = async () => {
+    if (!user) return
+    setDeletingAccount(true)
+    // Supprime les données utilisateur, puis le compte auth via API route
+    await supabase.from('recommendations').delete().eq('user_id', user.id)
+    await supabase.from('saved_recommendations').delete().eq('user_id', user.id)
+    await supabase.from('follows').delete().eq('follower_id', user.id)
+    await supabase.from('follows').delete().eq('following_id', user.id)
+    await supabase.from('profiles').delete().eq('id', user.id)
+    await supabase.auth.signOut()
+    router.push('/auth')
+  }
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/auth')
@@ -153,7 +168,7 @@ export default function Profil() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         maxWidth: '520px', margin: '0 auto',
       }}>
-        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)' }}>profil</span>
+        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>profil</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button
             onClick={() => router.push('/notifications')}
@@ -199,7 +214,7 @@ export default function Profil() {
             {nomAffiché[0].toUpperCase()}
           </div>
           <div>
-            <p style={{ fontWeight: 700, fontSize: '18px', color: 'var(--text-primary)' }}>
+            <p style={{ fontWeight: 700, fontSize: '18px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
               {nomAffiché}
             </p>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>@{username}</p>
@@ -271,7 +286,7 @@ export default function Profil() {
                     </div>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
+                    <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
                       {reco.title}
                     </p>
                     {reco.creator && (
@@ -361,7 +376,7 @@ export default function Profil() {
                         {(p.full_name || p.username || '?')[0].toUpperCase()}
                       </div>
                       <div>
-                        <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
                           {p.full_name || p.username}
                         </p>
                         <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@{p.username}</p>
@@ -404,7 +419,7 @@ export default function Profil() {
                         {(p.full_name || p.username || '?')[0].toUpperCase()}
                       </div>
                       <div>
-                        <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
                           {p.full_name || p.username}
                         </p>
                         <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@{p.username}</p>
@@ -569,6 +584,68 @@ export default function Profil() {
                 Email
               </p>
               <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{user?.email}</p>
+            </div>
+
+            {/* Supprimer le compte */}
+            <div style={{
+              background: 'var(--bg-card)', border: '1px solid #fca5a5',
+              borderRadius: 'var(--radius-md)', padding: '18px',
+            }}>
+              <p style={{
+                fontSize: '11px', fontWeight: 600, color: '#ef4444',
+                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px',
+              }}>
+                Zone de danger
+              </p>
+              {!deleteConfirm ? (
+                <>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                    Supprimer définitivement ton compte et toutes tes recos.
+                  </p>
+                  <button
+                    onClick={() => setDeleteConfirm(true)}
+                    style={{
+                      width: '100%', padding: '10px',
+                      background: 'transparent', color: '#ef4444',
+                      border: '1px solid #ef4444', borderRadius: 'var(--radius-full)',
+                      fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    Supprimer mon compte
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#ef4444', marginBottom: '8px' }}>
+                    Es-tu sûr(e) ? Cette action est irréversible.
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => setDeleteConfirm(false)}
+                      style={{
+                        flex: 1, padding: '10px',
+                        background: 'transparent', color: 'var(--text-secondary)',
+                        border: '1px solid var(--border)', borderRadius: 'var(--radius-full)',
+                        fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deletingAccount}
+                      style={{
+                        flex: 1, padding: '10px',
+                        background: '#ef4444', color: '#fff',
+                        border: 'none', borderRadius: 'var(--radius-full)',
+                        fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      {deletingAccount ? 'Suppression...' : 'Confirmer'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
           </div>
