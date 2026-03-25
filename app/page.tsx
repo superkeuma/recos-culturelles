@@ -93,6 +93,19 @@ function drawDisk(
     ctx.stroke()
   }
 
+  // Rayon de lecture — zone éclairée vers l'aiguille (angle 0 = droite)
+  const halfAngle = 0.14
+  const rayGrad = ctx.createLinearGradient(CX, CY, CX + 140, CY)
+  rayGrad.addColorStop(0, 'rgba(255,255,255,0.22)')
+  rayGrad.addColorStop(0.6, 'rgba(255,255,255,0.08)')
+  rayGrad.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.beginPath()
+  ctx.moveTo(CX, CY)
+  ctx.arc(CX, CY, 140, -halfAngle, halfAngle)
+  ctx.closePath()
+  ctx.fillStyle = rayGrad
+  ctx.fill()
+
   if (recos.length === 0) {
     ctx.font = '500 11px Inter, sans-serif'
     ctx.fillStyle = 'rgba(255,255,255,0.2)'
@@ -134,15 +147,26 @@ function drawDisk(
 
       // Halo actif
       if (isActive) {
+        // Trait du centre vers le point
+        ctx.beginPath()
+        ctx.moveTo(CX, CY)
+        ctx.lineTo(x, y)
+        ctx.strokeStyle = reco.color
+        ctx.lineWidth = 1
+        ctx.globalAlpha = 0.35
+        ctx.stroke()
+        ctx.globalAlpha = 1
+
+        // Halo coloré
         ctx.beginPath()
         ctx.arc(x, y, 15, 0, Math.PI * 2)
         ctx.fillStyle = reco.color
-        ctx.globalAlpha = 0.2
+        ctx.globalAlpha = 0.25
         ctx.fill()
         ctx.globalAlpha = 1
 
         // Initiale
-        ctx.font = '600 9px Inter, sans-serif'
+        ctx.font = '700 9px Inter, sans-serif'
         ctx.fillStyle = INK
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
