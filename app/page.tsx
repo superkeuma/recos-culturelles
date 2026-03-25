@@ -386,6 +386,70 @@ export default function Feed() {
         ))}
       </div>
 
+      {/* ---- DÉTAIL RECO (compact, au-dessus du disque) ---- */}
+      <div style={{ width: '100%', padding: '8px 16px 0', boxSizing: 'border-box' }}>
+        {!activeReco ? (
+          <p style={{
+            fontFamily: 'var(--font-title)', fontSize: '14px',
+            color: INK, fontStyle: 'italic', textAlign: 'center',
+            padding: '6px 0', opacity: 0.2,
+          }}>
+            {allRecos.length === 0 && !loading
+              ? 'Suis des contacts pour découvrir leurs recos'
+              : 'Tourne pour découvrir les recos de tes contacts'}
+          </p>
+        ) : (
+          <div style={{
+            background: '#fff',
+            border: `2px solid ${INK}`,
+            boxShadow: `3px 3px 0 ${INK}`,
+            borderRadius: '2px',
+            padding: '8px 10px',
+            display: 'flex', alignItems: 'center', gap: '10px',
+          }}>
+            {activeReco.poster_url && (
+              <img
+                src={activeReco.poster_url}
+                alt={activeReco.title}
+                style={{
+                  width: '36px', height: '48px', borderRadius: '2px',
+                  objectFit: 'cover', flexShrink: 0,
+                  border: `1.5px solid ${INK}`,
+                }}
+              />
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{
+                fontSize: '8px', letterSpacing: '0.16em', color: INK,
+                textTransform: 'uppercase', marginBottom: '2px',
+                fontWeight: 700, opacity: 0.4,
+              }}>
+                {activeReco.type}
+              </p>
+              <p style={{
+                fontFamily: 'var(--font-title)', fontSize: '15px', fontWeight: 700,
+                color: INK, lineHeight: 1.1, marginBottom: '3px',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
+                {activeReco.title}
+              </p>
+              {activeReco.creator && (
+                <p style={{ fontSize: '11px', color: INK, opacity: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeReco.creator}</p>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                background: activeReco.color, border: `1.5px solid ${INK}`,
+              }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, color: INK, letterSpacing: '0.06em' }}>
+                {activeReco.by}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* ---- DISQUE ---- */}
       <div style={{
         position: 'relative',
@@ -459,88 +523,6 @@ export default function Feed() {
           ))}
         </div>
       )}
-
-      {/* ---- DÉTAIL RECO ---- */}
-      <div style={{ width: '100%', padding: '12px 16px 8px', boxSizing: 'border-box' }}>
-        {!activeReco ? (
-          <p style={{
-            fontFamily: 'var(--font-title)', fontSize: '18px',
-            color: INK, fontStyle: 'italic', textAlign: 'center',
-            padding: '16px 0', lineHeight: 1.6, opacity: 0.2,
-          }}>
-            {allRecos.length === 0 && !loading
-              ? 'Suis des contacts pour découvrir leurs recos'
-              : 'Tourne pour découvrir les recos de tes contacts'}
-          </p>
-        ) : (
-          <div style={{
-            background: '#fff',
-            border: `2px solid ${INK}`,
-            boxShadow: `4px 4px 0 ${INK}`,
-            borderRadius: '2px',
-            padding: '16px',
-          }}>
-            <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', marginBottom: '12px' }}>
-              {activeReco.poster_url && (
-                <img
-                  src={activeReco.poster_url}
-                  alt={activeReco.title}
-                  style={{
-                    width: '52px', height: '70px', borderRadius: '2px',
-                    objectFit: 'cover', flexShrink: 0,
-                    border: `2px solid ${INK}`,
-                  }}
-                />
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{
-                  fontSize: '9px', letterSpacing: '0.18em', color: INK,
-                  textTransform: 'uppercase', marginBottom: '5px',
-                  fontWeight: 700, opacity: 0.4,
-                }}>
-                  {activeReco.type}
-                </p>
-                <p style={{
-                  fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700,
-                  color: INK, lineHeight: 1.05, marginBottom: '4px',
-                }}>
-                  {activeReco.title}
-                </p>
-                {activeReco.creator && (
-                  <p style={{ fontSize: '12px', color: INK, opacity: 0.5 }}>{activeReco.creator}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Tag contact coloré */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-              <div style={{
-                width: '10px', height: '10px', borderRadius: '50%',
-                background: activeReco.color,
-                border: `1.5px solid ${INK}`,
-                flexShrink: 0,
-              }} />
-              <span style={{
-                fontSize: '11px', fontWeight: 700, color: INK,
-                letterSpacing: '0.08em',
-              }}>
-                {activeReco.by}
-              </span>
-            </div>
-
-            {activeReco.comment && (
-              <p style={{
-                fontFamily: 'var(--font-title)', fontSize: '16px',
-                color: INK, fontStyle: 'italic', lineHeight: 1.7,
-                borderLeft: `3px solid ${activeReco.color}`,
-                paddingLeft: '12px', opacity: 0.75,
-              }}>
-                "{activeReco.comment}"
-              </p>
-            )}
-          </div>
-        )}
-      </div>
 
       <NavBar current="/" router={router} />
 
