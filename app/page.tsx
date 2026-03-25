@@ -411,25 +411,32 @@ export default function Feed() {
       </div>
 
       {/* ---- DÉTAIL RECO (compact, au-dessus du disque) ---- */}
-      <div style={{ width: '100%', padding: '8px 16px 0', boxSizing: 'border-box' }}>
+      <div style={{ width: '100%', padding: '8px 16px 0', boxSizing: 'border-box', height: '72px', flexShrink: 0 }}>
         {!activeReco ? (
-          <p style={{
-            fontFamily: 'var(--font-title)', fontSize: '14px',
-            color: INK, fontStyle: 'italic', textAlign: 'center',
-            padding: '6px 0', opacity: 0.2,
+          <div style={{
+            height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: `2px solid transparent`,
           }}>
-            {allRecos.length === 0 && !loading
-              ? 'Suis des contacts pour découvrir leurs recos'
-              : 'Tourne pour découvrir les recos de tes contacts'}
-          </p>
+            <p style={{
+              fontFamily: 'var(--font-title)', fontSize: '14px',
+              color: INK, fontStyle: 'italic', textAlign: 'center',
+              opacity: 0.2, margin: 0,
+            }}>
+              {allRecos.length === 0 && !loading
+                ? 'Suis des contacts pour découvrir leurs recos'
+                : 'Tourne pour découvrir les recos de tes contacts'}
+            </p>
+          </div>
         ) : (
           <div style={{
+            height: '100%',
             background: '#fff',
             border: `2px solid ${INK}`,
             boxShadow: `3px 3px 0 ${INK}`,
             borderRadius: '2px',
             padding: '8px 10px',
             display: 'flex', alignItems: 'center', gap: '10px',
+            boxSizing: 'border-box',
           }}>
             {activeReco.poster_url && (
               <img
