@@ -290,7 +290,6 @@ export default function ProfilPublic() {
             <button key={t} onClick={() => setTab(t)} style={{
               flex: 1, padding: '9px 4px',
               background: tab === t ? YELLOW : 'transparent',
-              borderRight: i < 2 ? `2px solid ${INK}` : 'none',
               border: 'none', borderRight: i < 2 ? `2px solid ${INK}` : 'none',
               fontSize: '9px', fontWeight: 700, letterSpacing: '0.1em',
               color: INK, cursor: 'pointer', textTransform: 'uppercase',
