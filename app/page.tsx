@@ -338,7 +338,7 @@ export default function Feed() {
 
       {/* ---- HEADER ---- */}
       <div style={{
-        width: '100%', padding: '20px 24px 12px',
+        width: '100%', padding: '12px 20px 10px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         borderBottom: `2px solid ${INK}`,
       }}>
@@ -358,7 +358,7 @@ export default function Feed() {
 
       {/* ---- FILTRES ---- */}
       <div style={{
-        display: 'flex', gap: '6px', padding: '14px 20px',
+        display: 'flex', gap: '6px', padding: '8px 16px',
         width: '100%', boxSizing: 'border-box',
         overflowX: 'auto', scrollbarWidth: 'none',
         borderBottom: `2px solid ${INK}`,
@@ -388,8 +388,10 @@ export default function Feed() {
 
       {/* ---- DISQUE ---- */}
       <div style={{
-        position: 'relative', width: '300px', height: '300px',
-        margin: '20px auto 0', flexShrink: 0,
+        position: 'relative',
+        width: 'min(240px, calc(100vw - 60px))',
+        aspectRatio: '1/1',
+        margin: '10px auto 0', flexShrink: 0,
       }}>
         <canvas
           ref={canvasRef}
@@ -398,6 +400,7 @@ export default function Feed() {
           style={{
             display: 'block', cursor: 'grab', touchAction: 'none',
             opacity: loading ? 0 : 1, transition: 'opacity 0.4s',
+            width: '100%', height: '100%',
           }}
         />
         {loading && (
@@ -413,7 +416,7 @@ export default function Feed() {
 
       <p style={{
         fontSize: '9px', color: INK, letterSpacing: '0.2em',
-        fontWeight: 700, textAlign: 'center', padding: '10px 0 14px',
+        fontWeight: 700, textAlign: 'center', padding: '6px 0 8px',
         opacity: 0.25,
       }}>
         ↺ TOURNE LE DISQUE
@@ -422,7 +425,7 @@ export default function Feed() {
       {/* ---- CONTACTS ---- */}
       {contacts.length > 0 && (
         <div style={{
-          display: 'flex', gap: '12px', padding: '10px 24px 14px',
+          display: 'flex', gap: '10px', padding: '6px 16px 10px',
           width: '100%', boxSizing: 'border-box',
           overflowX: 'auto', scrollbarWidth: 'none', justifyContent: 'center',
           borderBottom: `2px solid ${INK}`,
@@ -458,7 +461,7 @@ export default function Feed() {
       )}
 
       {/* ---- DÉTAIL RECO ---- */}
-      <div style={{ width: '100%', padding: '20px 20px 8px', boxSizing: 'border-box' }}>
+      <div style={{ width: '100%', padding: '12px 16px 8px', boxSizing: 'border-box' }}>
         {!activeReco ? (
           <p style={{
             fontFamily: 'var(--font-title)', fontSize: '18px',
@@ -498,7 +501,7 @@ export default function Feed() {
                   {activeReco.type}
                 </p>
                 <p style={{
-                  fontFamily: 'var(--font-title)', fontSize: '26px', fontWeight: 700,
+                  fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700,
                   color: INK, lineHeight: 1.05, marginBottom: '4px',
                 }}>
                   {activeReco.title}
