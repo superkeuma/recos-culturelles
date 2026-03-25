@@ -1,393 +1,550 @@
 'use client'
 // ============================================
-// PAGE D'ACCUEIL — LE FEED (v2 redesign)
-// Design minimaliste blanc pur + bleu nuit
+// PAGE D'ACCUEIL — TOURNE-DISQUE
+// Esthétique pop art 60s
 // ============================================
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import TypeIcon from '@/components/TypeIcon'
 import NavBar from '@/components/NavBar'
-import { Search, Sprout } from 'lucide-react'
 
-const LABELS: Record<string, string> = {
-  film: 'Film', serie: 'Série', musique: 'Musique', livre: 'Livre',
-  podcast: 'Podcast', jeu: 'Jeu', youtube: 'YouTube', spectacle: 'Spectacle', autre: 'Autre',
+// ---- Palette Pop Art ----
+const BG       = '#FAFAF0'   // crème
+const INK      = '#0a0a0a'   // noir profond
+const YELLOW   = '#FFD600'   // jaune pop
+const RED      = '#FF2D55'   // rouge pop
+const DISK_BG  = '#111111'   // vinyle
+
+const CONTACT_COLORS = [
+  '#FF2D55', '#FFD600', '#0066FF', '#FF6B00',
+  '#00CC66', '#CC00FF', '#00CCFF', '#FF3300',
+]
+
+const FILTERS = [
+  { key: 'tout',    label: 'TOUT'    },
+  { key: 'film',    label: 'FILM'    },
+  { key: 'musique', label: 'MUSIQUE' },
+  { key: 'livre',   label: 'LIVRE'   },
+  { key: 'podcast', label: 'PODCAST' },
+  { key: 'youtube', label: 'YOUTUBE' },
+  { key: 'autre',   label: 'AUTRE'   },
+]
+
+// ---- Types ----
+interface Reco {
+  id: string
+  user_id: string
+  type: string
+  title: string
+  creator: string | null
+  comment: string | null
+  poster_url: string | null
+  url: string | null
+  color: string
+  by: string
+  username: string
+}
+interface Contact {
+  user_id: string
+  name: string
+  username: string
+  color: string
 }
 
-// --- Formate la date en "il y a X jours" ---
-const formatDate = (date: string) => {
-  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 86400000)
-  if (diff === 0) return "aujourd'hui"
-  if (diff === 1) return 'hier'
-  if (diff < 7) return `il y a ${diff} jours`
-  return new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+// ---- Fonctions de dessin ----
+const W = 300, H = 300, CX = 150, CY = 150
+
+function computeRingRadius(i: number, total: number): number {
+  const minR = 48, maxR = 126
+  if (total === 1) return (minR + maxR) / 2
+  return minR + (maxR - minR) * (i / (total - 1))
 }
 
+function drawDisk(
+  canvas: HTMLCanvasElement,
+  recos: Reco[],
+  activeIdx: number,
+  rotation: number
+) {
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  ctx.clearRect(0, 0, W, H)
+
+  // Fond du disque — noir vinyle
+  ctx.beginPath()
+  ctx.arc(CX, CY, 146, 0, Math.PI * 2)
+  ctx.fillStyle = DISK_BG
+  ctx.fill()
+
+  // Bordure épaisse noire pop art
+  ctx.beginPath()
+  ctx.arc(CX, CY, 146, 0, Math.PI * 2)
+  ctx.strokeStyle = INK
+  ctx.lineWidth = 3
+  ctx.stroke()
+
+  // Sillons discrets
+  for (let r = 30; r < 140; r += 6) {
+    ctx.beginPath()
+    ctx.arc(CX, CY, r, 0, Math.PI * 2)
+    ctx.strokeStyle = r % 18 === 0 ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.03)'
+    ctx.lineWidth = 0.5
+    ctx.stroke()
+  }
+
+  if (recos.length === 0) {
+    ctx.font = '500 11px Inter, sans-serif'
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'
+    ctx.textAlign = 'center'
+    ctx.fillText('aucune reco', CX, CY + 4)
+  } else {
+    recos.forEach((reco, i) => {
+      const baseAngle = (i / recos.length) * Math.PI * 2
+      const a = baseAngle + rotation
+      const radius = computeRingRadius(i, recos.length)
+      const x = CX + Math.cos(a) * radius
+      const y = CY + Math.sin(a) * radius
+      const isActive = i === activeIdx
+
+      // Arc coloré sur le sillon
+      const arcSpan = Math.min(0.3, (Math.PI * 2 / recos.length) * 0.7)
+      ctx.beginPath()
+      ctx.arc(CX, CY, radius, a - arcSpan, a + arcSpan)
+      ctx.strokeStyle = reco.color
+      ctx.lineWidth = isActive ? 3 : 1.5
+      ctx.globalAlpha = isActive ? 1 : 0.5
+      ctx.stroke()
+      ctx.globalAlpha = 1
+
+      // Point — avec contour noir pop art
+      const ptR = isActive ? 8 : 5
+      ctx.beginPath()
+      ctx.arc(x, y, ptR, 0, Math.PI * 2)
+      ctx.fillStyle = reco.color
+      ctx.globalAlpha = isActive ? 1 : 0.75
+      ctx.fill()
+      ctx.globalAlpha = 1
+      // Contour noir
+      ctx.beginPath()
+      ctx.arc(x, y, ptR, 0, Math.PI * 2)
+      ctx.strokeStyle = isActive ? INK : 'rgba(0,0,0,0.4)'
+      ctx.lineWidth = isActive ? 1.5 : 0.8
+      ctx.stroke()
+
+      // Halo actif
+      if (isActive) {
+        ctx.beginPath()
+        ctx.arc(x, y, 15, 0, Math.PI * 2)
+        ctx.fillStyle = reco.color
+        ctx.globalAlpha = 0.2
+        ctx.fill()
+        ctx.globalAlpha = 1
+
+        // Initiale
+        ctx.font = '600 9px Inter, sans-serif'
+        ctx.fillStyle = INK
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(reco.by[0].toUpperCase(), x, y)
+        ctx.textBaseline = 'alphabetic'
+      }
+    })
+  }
+
+  // Centre — étiquette jaune pop art
+  ctx.beginPath()
+  ctx.arc(CX, CY, 24, 0, Math.PI * 2)
+  ctx.fillStyle = YELLOW
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(CX, CY, 24, 0, Math.PI * 2)
+  ctx.strokeStyle = INK
+  ctx.lineWidth = 2
+  ctx.stroke()
+
+  // Trou central
+  ctx.beginPath()
+  ctx.arc(CX, CY, 5, 0, Math.PI * 2)
+  ctx.fillStyle = INK
+  ctx.fill()
+
+  // Aiguille rouge
+  const needleX = CX + 146
+  ctx.beginPath()
+  ctx.moveTo(needleX + 10, CY - 18)
+  ctx.lineTo(needleX + 10, CY + 18)
+  ctx.strokeStyle = RED
+  ctx.lineWidth = 2.5
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.arc(needleX + 10, CY, 4, 0, Math.PI * 2)
+  ctx.fillStyle = RED
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(needleX + 10, CY, 4, 0, Math.PI * 2)
+  ctx.strokeStyle = INK
+  ctx.lineWidth = 1.5
+  ctx.stroke()
+}
+
+function findClosest(recos: Reco[], rotation: number): number {
+  if (recos.length === 0) return -1
+  let best = -1, bestDist = Infinity
+  recos.forEach((_, i) => {
+    const baseAngle = (i / recos.length) * Math.PI * 2
+    let a = ((baseAngle + rotation) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2)
+    let dist = Math.abs(a)
+    if (dist > Math.PI) dist = Math.PI * 2 - dist
+    if (dist < bestDist) { bestDist = dist; best = i }
+  })
+  return bestDist < 0.45 ? best : -1
+}
+
+// ---- Composant ----
 export default function Feed() {
-  const [recommendations, setRecommendations] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showAbout, setShowAbout] = useState(false)
-  const [user, setUser] = useState<any>(null)
-  const [saved, setSaved] = useState<Set<string>>(new Set())
-  const [filtre, setFiltre] = useState<string | null>(null)
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [allRecos, setAllRecos] = useState<Reco[]>([])
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [activeFilter, setActiveFilter] = useState('tout')
+  const [activeReco, setActiveReco] = useState<Reco | null>(null)
 
-  const categories = useMemo(() => {
-    const types = [...new Set(recommendations.map(r => r.type))]
-    return types.filter(Boolean)
-  }, [recommendations])
-
-  const recosFiltrees = useMemo(
-    () => filtre ? recommendations.filter(r => r.type === filtre) : recommendations,
-    [recommendations, filtre]
-  )
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const rotationRef = useRef(0)
+  const draggingRef = useRef(false)
+  const lastAngleRef = useRef(0)
+  const activeIdxRef = useRef(-1)
+  const recosRef = useRef<Reco[]>([])
 
   useEffect(() => {
-    const getUser = async () => {
+    const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
-      setUser(user)
-      fetchRecommendations(user.id)
-      fetchSaved(user.id)
+
+      const { data: followsData } = await supabase
+        .from('follows').select('following_id').eq('follower_id', user.id)
+
+      if (!followsData || followsData.length === 0) { setLoading(false); return }
+
+      const followingIds = followsData.map((f: any) => f.following_id)
+      const [profilesRes, recosRes] = await Promise.all([
+        supabase.from('profiles').select('id, username, full_name').in('id', followingIds),
+        supabase.from('recommendations')
+          .select('id, user_id, type, title, creator, comment, poster_url, url')
+          .in('user_id', followingIds)
+          .order('created_at', { ascending: false })
+          .limit(60),
+      ])
+
+      const colorMap: Record<string, string> = {}
+      const contactsList: Contact[] = []
+      profilesRes.data?.forEach((p: any, i: number) => {
+        const color = CONTACT_COLORS[i % CONTACT_COLORS.length]
+        colorMap[p.id] = color
+        contactsList.push({ user_id: p.id, name: p.full_name || p.username, username: p.username, color })
+      })
+      setContacts(contactsList)
+
+      if (recosRes.data) {
+        const recos: Reco[] = recosRes.data.map((r: any) => ({
+          ...r,
+          color: colorMap[r.user_id] || '#888',
+          by: contactsList.find(c => c.user_id === r.user_id)?.name || '?',
+          username: contactsList.find(c => c.user_id === r.user_id)?.username || '',
+        }))
+        setAllRecos(recos)
+      }
+      setLoading(false)
     }
-    getUser()
+    load()
   }, [])
 
-  const fetchRecommendations = async (userId: string) => {
-    const { data: followData } = await supabase
-      .from('follows')
-      .select('following_id')
-      .eq('follower_id', userId)
+  const filteredRecos = activeFilter === 'tout'
+    ? allRecos
+    : allRecos.filter(r => r.type === activeFilter)
 
-    const followingIds = followData?.map(f => f.following_id) || []
-    const allIds = [...followingIds, userId]
+  useEffect(() => {
+    recosRef.current = filteredRecos
+    activeIdxRef.current = -1
+    rotationRef.current = 0
+    setActiveReco(null)
+    if (canvasRef.current) drawDisk(canvasRef.current, filteredRecos, -1, 0)
+  }, [activeFilter, allRecos])
 
-    const { data } = await supabase
-      .from('recommendations')
-      .select('*, profiles(username, full_name)')
-      .in('user_id', allIds)
-      .order('created_at', { ascending: false })
-      .limit(50)
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
 
-    if (data) setRecommendations(data)
-    setLoading(false)
-  }
-
-  // --- Charge les IDs des recos déjà sauvegardées ---
-  const fetchSaved = async (userId: string) => {
-    const { data } = await supabase
-      .from('saved_recommendations')
-      .select('recommendation_id')
-      .eq('user_id', userId)
-    if (data) setSaved(new Set(data.map(s => s.recommendation_id)))
-  }
-
-  // --- Sauvegarde ou retire une reco ---
-  const toggleSave = async (recoId: string) => {
-    if (!user) return
-    if (saved.has(recoId)) {
-      await supabase
-        .from('saved_recommendations')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('recommendation_id', recoId)
-      setSaved(prev => { const s = new Set(prev); s.delete(recoId); return s })
-    } else {
-      await supabase
-        .from('saved_recommendations')
-        .insert({ user_id: user.id, recommendation_id: recoId })
-      setSaved(prev => new Set(prev).add(recoId))
+    const getPos = (e: MouseEvent | TouchEvent) => {
+      const rect = canvas.getBoundingClientRect()
+      const scaleX = W / rect.width, scaleY = H / rect.height
+      if ('touches' in e && e.touches.length > 0)
+        return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY }
+      return { x: ((e as MouseEvent).clientX - rect.left) * scaleX, y: ((e as MouseEvent).clientY - rect.top) * scaleY }
     }
-  }
+    const getAngle = (x: number, y: number) => Math.atan2(y - CY, x - CX)
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Chargement...</p>
-    </div>
-  )
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      draggingRef.current = true
+      const p = getPos(e)
+      lastAngleRef.current = getAngle(p.x, p.y)
+    }
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      if (!draggingRef.current) return
+      const p = getPos(e)
+      const angle = getAngle(p.x, p.y)
+      rotationRef.current += angle - lastAngleRef.current
+      lastAngleRef.current = angle
+      const recos = recosRef.current
+      const idx = findClosest(recos, rotationRef.current)
+      if (idx !== activeIdxRef.current) {
+        activeIdxRef.current = idx
+        setActiveReco(idx !== -1 ? recos[idx] : null)
+      }
+      drawDisk(canvas, recos, activeIdxRef.current, rotationRef.current)
+      if ('touches' in e) e.preventDefault()
+    }
+    const onUp = () => { draggingRef.current = false }
+
+    canvas.addEventListener('mousedown', onDown as EventListener)
+    canvas.addEventListener('touchstart', onDown as EventListener, { passive: false })
+    canvas.addEventListener('mousemove', onMove as EventListener)
+    canvas.addEventListener('touchmove', onMove as EventListener, { passive: false })
+    canvas.addEventListener('mouseup', onUp)
+    canvas.addEventListener('touchend', onUp)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      canvas.removeEventListener('mousedown', onDown as EventListener)
+      canvas.removeEventListener('touchstart', onDown as EventListener)
+      canvas.removeEventListener('mousemove', onMove as EventListener)
+      canvas.removeEventListener('touchmove', onMove as EventListener)
+      canvas.removeEventListener('mouseup', onUp)
+      canvas.removeEventListener('touchend', onUp)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [])
+
+  const now = new Date()
+  const timeStr = `${String(now.getHours()).padStart(2, '0')}h${String(now.getMinutes()).padStart(2, '0')}`
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '80px' }}>
+    <div style={{
+      background: BG, minHeight: '100vh',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      paddingBottom: '80px', fontFamily: 'var(--font)',
+      maxWidth: '520px', margin: '0 auto',
+    }}>
 
       {/* ---- HEADER ---- */}
-      {/* ---- MODAL ABOUT ---- */}
-      {showAbout && (
-        <div
-          onClick={() => setShowAbout(false)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 100,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '32px',
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: 'var(--bg)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '40px 32px',
-              maxWidth: '360px', width: '100%',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '28px' }}>
-              <img src="/icon.png" alt="recos" style={{ height: '80px' }} />
-            </div>
-            <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.7', marginBottom: '12px' }}>
-              reco reco est une application de recommandations culturelles.
-            </p>
-            <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.7', marginBottom: '20px' }}>
-              Les coups de cœur de tes contacts. Rien de plus. Rien de moins.
-            </p>
-            <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--accent)', lineHeight: '1.7' }}>
-              Pas de likes. Pas de bruit. Pas d'algo.<br />Juste des recos.
-            </p>
-            <button
-              onClick={() => setShowAbout(false)}
-              style={{
-                marginTop: '28px', padding: '10px 28px',
-                background: 'var(--accent)', color: '#fff',
-                border: 'none', borderRadius: 'var(--radius-md)',
-                fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-              }}
-            >
-              Fermer
-            </button>
-          </div>
-        </div>
-      )}
-
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 10,
-        background: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid var(--border-light)',
-        padding: '0 16px',
-        height: '56px',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        maxWidth: '520px', margin: '0 auto',
+      <div style={{
+        width: '100%', padding: '20px 24px 12px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        borderBottom: `2px solid ${INK}`,
       }}>
-        <button onClick={() => setShowAbout(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
-          <img src="/icon.png" alt="recos" style={{ height: '48px' }} />
-        </button>
-      </header>
+        <span style={{
+          fontFamily: 'var(--font-title)', color: INK,
+          fontSize: '22px', fontWeight: 700, letterSpacing: '-0.5px',
+        }}>
+          reco
+        </span>
+        <span style={{
+          fontSize: '10px', color: INK, letterSpacing: '0.15em',
+          fontWeight: 500, opacity: 0.4,
+        }}>
+          {timeStr}
+        </span>
+      </div>
 
       {/* ---- FILTRES ---- */}
-      {categories.length > 1 && (
+      <div style={{
+        display: 'flex', gap: '6px', padding: '14px 20px',
+        width: '100%', boxSizing: 'border-box',
+        overflowX: 'auto', scrollbarWidth: 'none',
+        borderBottom: `2px solid ${INK}`,
+      }}>
+        {FILTERS.map(f => (
+          <button
+            key={f.key}
+            onClick={() => setActiveFilter(f.key)}
+            style={{
+              padding: '5px 12px',
+              borderRadius: '2px',
+              border: `2px solid ${INK}`,
+              background: activeFilter === f.key ? YELLOW : 'transparent',
+              color: INK,
+              fontSize: '10px', fontWeight: 700,
+              letterSpacing: '0.1em', cursor: 'pointer', whiteSpace: 'nowrap',
+              fontFamily: 'var(--font)',
+              boxShadow: activeFilter === f.key ? `3px 3px 0 ${INK}` : 'none',
+              transform: activeFilter === f.key ? 'translate(-1px, -1px)' : 'none',
+              transition: 'all 0.1s',
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ---- DISQUE ---- */}
+      <div style={{
+        position: 'relative', width: '300px', height: '300px',
+        margin: '20px auto 0', flexShrink: 0,
+      }}>
+        <canvas
+          ref={canvasRef}
+          width={300}
+          height={300}
+          style={{
+            display: 'block', cursor: 'grab', touchAction: 'none',
+            opacity: loading ? 0 : 1, transition: 'opacity 0.4s',
+          }}
+        />
+        {loading && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '50%',
+              border: `3px solid ${INK}`, borderTopColor: YELLOW,
+              animation: 'spin 0.8s linear infinite',
+            }} />
+          </div>
+        )}
+      </div>
+
+      <p style={{
+        fontSize: '9px', color: INK, letterSpacing: '0.2em',
+        fontWeight: 700, textAlign: 'center', padding: '10px 0 14px',
+        opacity: 0.25,
+      }}>
+        ↺ TOURNE LE DISQUE
+      </p>
+
+      {/* ---- CONTACTS ---- */}
+      {contacts.length > 0 && (
         <div style={{
-          position: 'sticky', top: '56px', zIndex: 9,
-          background: 'rgba(255,255,255,0.92)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid var(--border-light)',
-          maxWidth: '520px', margin: '0 auto',
+          display: 'flex', gap: '12px', padding: '10px 24px 14px',
+          width: '100%', boxSizing: 'border-box',
+          overflowX: 'auto', scrollbarWidth: 'none', justifyContent: 'center',
+          borderBottom: `2px solid ${INK}`,
         }}>
-          <div style={{
-            display: 'flex', gap: '6px',
-            padding: '10px 16px',
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-          }}>
-            {/* Pill "Tout" */}
-            <button
-              onClick={() => setFiltre(null)}
+          {contacts.map(contact => (
+            <div
+              key={contact.user_id}
+              onClick={() => router.push(`/u/${contact.username}`)}
               style={{
-                flexShrink: 0,
-                padding: '5px 13px',
-                borderRadius: 'var(--radius-full)',
-                border: 'none', cursor: 'pointer',
-                fontSize: '12px', fontWeight: filtre === null ? 600 : 400,
-                background: filtre === null ? 'var(--accent)' : 'var(--bg-secondary)',
-                color: filtre === null ? '#fff' : 'var(--text-muted)',
-                transition: 'all 0.15s',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+                cursor: 'pointer', flexShrink: 0,
+                opacity: !activeReco || activeReco.user_id === contact.user_id ? 1 : 0.2,
+                transition: 'opacity 0.2s',
               }}
             >
-              Tout
-            </button>
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setFiltre(filtre === cat ? null : cat)}
-                style={{
-                  flexShrink: 0,
-                  display: 'flex', alignItems: 'center', gap: '5px',
-                  padding: '5px 13px',
-                  borderRadius: 'var(--radius-full)',
-                  border: 'none', cursor: 'pointer',
-                  fontSize: '12px', fontWeight: filtre === cat ? 600 : 400,
-                  background: filtre === cat ? 'var(--accent)' : 'var(--bg-secondary)',
-                  color: filtre === cat ? '#fff' : 'var(--text-muted)',
-                  transition: 'all 0.15s',
-                }}
-              >
-                <TypeIcon type={cat} size={11} color={filtre === cat ? '#fff' : 'currentColor'} />
-                {LABELS[cat] ?? cat}
-              </button>
-            ))}
-          </div>
+              <div style={{
+                width: '34px', height: '34px', borderRadius: '50%',
+                background: contact.color,
+                border: `2px solid ${INK}`,
+                boxShadow: `2px 2px 0 ${INK}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '13px', fontWeight: 700, color: '#fff',
+                textShadow: `1px 1px 0 ${INK}`,
+              }}>
+                {contact.name[0].toUpperCase()}
+              </div>
+              <span style={{ fontSize: '8px', color: INK, letterSpacing: '0.08em', fontWeight: 500, opacity: 0.5 }}>
+                {contact.username}
+              </span>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* ---- FEED ---- */}
-      <main style={{ maxWidth: '520px', margin: '0 auto', padding: '16px' }}>
-        {recosFiltrees.length === 0 ? (
-
-          /* ---- ÉTAT VIDE ---- */
-          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
-            <div style={{ marginBottom: '12px', opacity: 0.3, display: 'flex', justifyContent: 'center' }}>
-              {filtre ? <Search size={36} strokeWidth={1.5} /> : <Sprout size={36} strokeWidth={1.5} />}
-            </div>
-            <p style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>
-              {filtre ? `Aucune reco de type « ${LABELS[filtre] ?? filtre} »` : "Aucune reco pour l'instant"}
-            </p>
-            {!filtre && <p style={{ fontSize: '14px', marginTop: '6px' }}>Ajoute des contacts ou partage la première !</p>}
-          </div>
-
+      {/* ---- DÉTAIL RECO ---- */}
+      <div style={{ width: '100%', padding: '20px 20px 8px', boxSizing: 'border-box' }}>
+        {!activeReco ? (
+          <p style={{
+            fontFamily: 'var(--font-title)', fontSize: '18px',
+            color: INK, fontStyle: 'italic', textAlign: 'center',
+            padding: '16px 0', lineHeight: 1.6, opacity: 0.2,
+          }}>
+            {allRecos.length === 0 && !loading
+              ? 'Suis des contacts pour découvrir leurs recos'
+              : 'Tourne pour découvrir les recos de tes contacts'}
+          </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {recosFiltrees.map(reco => (
-
-              /* ---- CARTE RECO ---- */
-              <div key={reco.id} style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)',
-                padding: '16px',
-                transition: 'border-color 0.15s',
-              }}>
-
-                {/* Ligne auteur + date */}
-                <div style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  alignItems: 'center', marginBottom: '10px',
+          <div style={{
+            background: '#fff',
+            border: `2px solid ${INK}`,
+            boxShadow: `4px 4px 0 ${INK}`,
+            borderRadius: '2px',
+            padding: '16px',
+          }}>
+            <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', marginBottom: '12px' }}>
+              {activeReco.poster_url && (
+                <img
+                  src={activeReco.poster_url}
+                  alt={activeReco.title}
+                  style={{
+                    width: '52px', height: '70px', borderRadius: '2px',
+                    objectFit: 'cover', flexShrink: 0,
+                    border: `2px solid ${INK}`,
+                  }}
+                />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{
+                  fontSize: '9px', letterSpacing: '0.18em', color: INK,
+                  textTransform: 'uppercase', marginBottom: '5px',
+                  fontWeight: 700, opacity: 0.4,
                 }}>
-                  <button
-                    onClick={() => reco.profiles?.username && router.push(`/u/${reco.profiles.username}`)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '8px',
-                      background: 'none', border: 'none', cursor: reco.profiles?.username ? 'pointer' : 'default',
-                      padding: 0,
-                    }}
-                  >
-                    {/* Avatar initiales */}
-                    <div style={{
-                      width: '28px', height: '28px', borderRadius: '50%',
-                      background: 'var(--bg-secondary)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)',
-                    }}>
-                      {(reco.profiles?.full_name || reco.profiles?.username || '?')[0].toUpperCase()}
-                    </div>
-                    <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                      {reco.profiles?.full_name || reco.profiles?.username || 'Anonyme'}
-                    </span>
-                  </button>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {formatDate(reco.created_at)}
-                  </span>
-                </div>
-
-                {/* Contenu principal : miniature + texte */}
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-
-                  {/* Miniature ou icône */}
-                  {reco.poster_url ? (
-                    <img
-                      src={reco.poster_url}
-                      alt={reco.title}
-                      style={{
-                        width: '38%', flexShrink: 0,
-                        aspectRatio: '2/3',
-                        objectFit: 'cover', objectPosition: 'center top',
-                        borderRadius: 'var(--radius-sm)',
-                      }}
-                    />
-                  ) : (
-                    <div style={{
-                      width: '38%', flexShrink: 0,
-                      aspectRatio: '2/3',
-                      background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--text-secondary)',
-                    }}>
-                      <TypeIcon type={reco.type} size={20} />
-                    </div>
-                  )}
-
-                  {/* Texte */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '4px',
-                      fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)',
-                      textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px',
-                    }}>
-                      <TypeIcon type={reco.type} size={11} />
-                      {reco.type}
-                    </span>
-                    <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px', fontFamily: 'var(--font-title)' }}>
-                      {reco.title}
-                    </p>
-                    {reco.creator && (
-                      <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                        {reco.creator}
-                      </p>
-                    )}
-                    {reco.comment && (
-                      <p style={{
-                        fontSize: '14px', color: 'var(--text-secondary)',
-                        fontStyle: 'italic', lineHeight: '1.5',
-                        borderLeft: '2px solid var(--border)',
-                        paddingLeft: '10px', marginTop: '8px',
-                      }}>
-                        {reco.comment}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Pied de carte : lien + sauvegarder */}
-                {(reco.url || reco.user_id !== user?.id) && (
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-between',
-                    alignItems: 'center', marginTop: '12px',
-                    paddingTop: '10px', borderTop: '1px solid var(--border-light)',
-                  }}>
-                    {reco.url ? (
-                      <a href={reco.url} target="_blank" rel="noopener noreferrer" style={{
-                        fontSize: '12px', color: 'var(--accent)',
-                        textDecoration: 'none', fontWeight: 500,
-                      }}>
-                        Voir →
-                      </a>
-                    ) : <span />}
-
-                    {reco.user_id !== user?.id && (
-                      <button
-                        onClick={() => toggleSave(reco.id)}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          fontSize: '13px', color: saved.has(reco.id) ? 'var(--accent)' : 'var(--text-muted)',
-                          fontWeight: saved.has(reco.id) ? 600 : 400,
-                          padding: '0',
-                        }}
-                      >
-                        {saved.has(reco.id) ? 'Sauvegardé' : 'Sauvegarder'}
-                      </button>
-                    )}
-                  </div>
+                  {activeReco.type}
+                </p>
+                <p style={{
+                  fontFamily: 'var(--font-title)', fontSize: '26px', fontWeight: 700,
+                  color: INK, lineHeight: 1.05, marginBottom: '4px',
+                }}>
+                  {activeReco.title}
+                </p>
+                {activeReco.creator && (
+                  <p style={{ fontSize: '12px', color: INK, opacity: 0.5 }}>{activeReco.creator}</p>
                 )}
               </div>
-            ))}
+            </div>
+
+            {/* Tag contact coloré */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+              <div style={{
+                width: '10px', height: '10px', borderRadius: '50%',
+                background: activeReco.color,
+                border: `1.5px solid ${INK}`,
+                flexShrink: 0,
+              }} />
+              <span style={{
+                fontSize: '11px', fontWeight: 700, color: INK,
+                letterSpacing: '0.08em',
+              }}>
+                {activeReco.by}
+              </span>
+            </div>
+
+            {activeReco.comment && (
+              <p style={{
+                fontFamily: 'var(--font-title)', fontSize: '16px',
+                color: INK, fontStyle: 'italic', lineHeight: 1.7,
+                borderLeft: `3px solid ${activeReco.color}`,
+                paddingLeft: '12px', opacity: 0.75,
+              }}>
+                "{activeReco.comment}"
+              </p>
+            )}
           </div>
         )}
-      </main>
+      </div>
 
-      {/* ---- BARRE DE NAVIGATION BAS ---- */}
       <NavBar current="/" router={router} />
 
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #vn-filters::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   )
 }
-
