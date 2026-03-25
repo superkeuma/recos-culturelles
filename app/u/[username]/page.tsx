@@ -138,139 +138,82 @@ export default function ProfilPublic() {
     }
   }
 
+  const INK = '#0a0a0a'
+  const YELLOW = '#FFD600'
+
   // ---- HEADER partagé ----
   const renderHeader = (title: string) => (
     <header style={{
       position: 'sticky', top: 0, zIndex: 10,
-      background: 'rgba(255,255,255,0.92)',
-      backdropFilter: 'blur(12px)',
-      borderBottom: '1px solid var(--border-light)',
-      padding: '0 16px', height: '56px',
+      background: '#FAFAF0', borderBottom: `2px solid ${INK}`,
+      padding: '0 20px', height: '56px',
       display: 'flex', alignItems: 'center', gap: '12px',
       maxWidth: '520px', margin: '0 auto',
     }}>
-      <button
-        onClick={() => router.back()}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}
-      >
-        <ArrowLeft size={20} />
+      <button onClick={() => router.back()} style={{
+        background: 'none', border: `2px solid ${INK}`, borderRadius: '2px',
+        cursor: 'pointer', color: INK, padding: '5px', display: 'flex',
+      }}>
+        <ArrowLeft size={16} strokeWidth={2} />
       </button>
-      <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)', flex: 1, fontFamily: 'var(--font-title)' }}>{title}</span>
+      <span style={{ fontWeight: 700, fontSize: '18px', color: INK, flex: 1, fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>{title}</span>
     </header>
   )
 
   // ---- CARTE RECO ----
   const renderReco = (reco: any, showAuthor = false) => (
-    <div key={reco.id} style={{
-      background: 'var(--bg-card)',
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--radius-md)',
-      padding: '16px',
-    }}>
-      {/* Auteur (pour les sauvegardes) */}
+    <div key={reco.id} style={{ background: '#fff', border: `2px solid ${INK}`, boxShadow: `4px 4px 0 ${INK}`, borderRadius: '2px', overflow: 'hidden' }}>
       {showAuthor && reco.profiles && (
-        <button
-          onClick={() => reco.profiles?.username && router.push(`/u/${reco.profiles.username}`)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            background: 'none', border: 'none', cursor: 'pointer',
-            padding: 0, marginBottom: '10px',
-          }}
-        >
-          <div style={{
-            width: '24px', height: '24px', borderRadius: '50%',
-            background: 'var(--bg-secondary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)',
-          }}>
+        <button onClick={() => reco.profiles?.username && router.push(`/u/${reco.profiles.username}`)}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', background: YELLOW, border: 'none', borderBottom: `2px solid ${INK}`, cursor: 'pointer', padding: '8px 14px', width: '100%', textAlign: 'left' }}>
+          <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: INK, border: `1.5px solid ${INK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: YELLOW, flexShrink: 0, fontFamily: 'var(--font-title)' }}>
             {(reco.profiles.full_name || reco.profiles.username || '?')[0].toUpperCase()}
           </div>
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+          <span style={{ fontSize: '11px', color: INK, fontWeight: 700, letterSpacing: '0.06em' }}>
             {reco.profiles.full_name || reco.profiles.username}
           </span>
         </button>
       )}
 
-      {/* Affiche pleine largeur */}
-      {reco.poster_url && (
-        <div style={{ margin: '0 -16px 12px', overflow: 'hidden' }}>
-          <img
-            src={reco.poster_url}
-            alt={reco.title}
-            style={{
-              width: '100%', aspectRatio: '2/3',
-              objectFit: 'cover', objectPosition: 'center top', display: 'block',
-            }}
-          />
-        </div>
-      )}
-
-      {/* Contenu */}
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-        {!reco.poster_url && (
-          <div style={{
-            width: '40px', height: '40px', flexShrink: 0,
-            background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--text-secondary)',
-          }}>
+      <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', padding: '14px' }}>
+        {reco.poster_url ? (
+          <img src={reco.poster_url} alt={reco.title}
+            style={{ width: '52px', height: '70px', objectFit: 'cover', objectPosition: 'center top', borderRadius: '2px', border: `1.5px solid ${INK}`, flexShrink: 0 }} />
+        ) : (
+          <div style={{ width: '40px', height: '40px', flexShrink: 0, background: '#FAFAF0', border: `1.5px solid ${INK}`, borderRadius: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: INK }}>
             <TypeIcon type={reco.type} size={18} />
           </div>
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: '4px',
-            fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)',
-            textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px',
-          }}>
-            <TypeIcon type={reco.type} size={11} />
-            {reco.type}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '9px', fontWeight: 700, color: INK, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '4px', opacity: 0.4 }}>
+            <TypeIcon type={reco.type} size={10} color={INK} />{reco.type}
           </span>
-          <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px', fontFamily: 'var(--font-title)' }}>
-            {reco.title}
-          </p>
-          {reco.creator && (
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{reco.creator}</p>
-          )}
+          <p style={{ fontWeight: 700, fontSize: '17px', color: INK, marginBottom: '2px', fontFamily: 'var(--font-title)', lineHeight: 1.1 }}>{reco.title}</p>
+          {reco.creator && <p style={{ fontSize: '12px', color: INK, opacity: 0.5 }}>{reco.creator}</p>}
           {reco.comment && (
-            <p style={{
-              fontSize: '14px', color: 'var(--text-secondary)',
-              fontStyle: 'italic', lineHeight: '1.5',
-              borderLeft: '2px solid var(--border)',
-              paddingLeft: '10px', marginTop: '8px',
-            }}>
-              {reco.comment}
+            <p style={{ fontSize: '13px', color: INK, fontStyle: 'italic', lineHeight: 1.6, borderLeft: `3px solid ${YELLOW}`, paddingLeft: '10px', marginTop: '8px', fontFamily: 'var(--font-title)', opacity: 0.75 }}>
+              "{reco.comment}"
             </p>
           )}
         </div>
       </div>
 
-      {/* Pied de carte */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-light)',
-      }}>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-          {formatDate(reco.created_at)}
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 14px', borderTop: `2px solid ${INK}`, background: '#FAFAF0' }}>
+        <span style={{ fontSize: '10px', color: INK, opacity: 0.4, fontWeight: 700, letterSpacing: '0.06em' }}>{formatDate(reco.created_at)}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {reco.url && (
-            <a href={reco.url} target="_blank" rel="noopener noreferrer" style={{
-              fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', fontWeight: 500,
-            }}>
-              Voir →
+            <a href={reco.url} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: '11px', color: INK, fontWeight: 700, letterSpacing: '0.06em', textDecoration: 'none', border: `2px solid ${INK}`, borderRadius: '2px', padding: '3px 9px' }}>
+              VOIR →
             </a>
           )}
-          <button
-            onClick={() => toggleMySave(reco.id)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              fontSize: '13px',
-              color: mySaved.has(reco.id) ? 'var(--accent)' : 'var(--text-muted)',
-              fontWeight: mySaved.has(reco.id) ? 600 : 400,
-            }}
-          >
-            {mySaved.has(reco.id) ? 'Sauvegardé' : 'Sauvegarder'}
+          <button onClick={() => toggleMySave(reco.id)} style={{
+            border: `2px solid ${INK}`, borderRadius: '2px', cursor: 'pointer',
+            padding: '3px 9px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
+            background: mySaved.has(reco.id) ? YELLOW : 'transparent', color: INK,
+            boxShadow: mySaved.has(reco.id) ? `2px 2px 0 ${INK}` : 'none',
+          }}>
+            {mySaved.has(reco.id) ? 'SAUVEGARDÉ ✓' : 'SAUVEGARDER'}
           </button>
         </div>
       </div>
@@ -278,20 +221,21 @@ export default function ProfilPublic() {
   )
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Chargement...</p>
+    <div style={{ minHeight: '100vh', background: '#FAFAF0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: `3px solid ${INK}`, borderTopColor: YELLOW, animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 
   if (notFound) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '80px' }}>
+    <div style={{ minHeight: '100vh', background: '#FAFAF0', paddingBottom: '80px' }}>
       {renderHeader('profil')}
-      <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
-        <div style={{ marginBottom: '12px', opacity: 0.3, display: 'flex', justifyContent: 'center' }}>
-          <Search size={36} strokeWidth={1.5} />
+      <div style={{ textAlign: 'center', padding: '80px 20px', color: INK }}>
+        <div style={{ marginBottom: '12px', opacity: 0.15, display: 'flex', justifyContent: 'center' }}>
+          <Search size={40} strokeWidth={1.5} />
         </div>
-        <p style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>Utilisateur introuvable</p>
-        <p style={{ fontSize: '14px', marginTop: '6px' }}>@{username} n'existe pas</p>
+        <p style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontStyle: 'italic', opacity: 0.4 }}>Utilisateur introuvable</p>
+        <p style={{ fontSize: '13px', marginTop: '6px', opacity: 0.4 }}>@{username} n'existe pas</p>
       </div>
       <NavBar current="" router={router} />
     </div>
@@ -300,83 +244,72 @@ export default function ProfilPublic() {
   const displayName = profile.full_name || profile.username || '?'
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '80px' }}>
+    <div style={{ minHeight: '100vh', background: '#FAFAF0', paddingBottom: '80px' }}>
 
       {renderHeader(`@${profile.username}`)}
 
       <main style={{ maxWidth: '520px', margin: '0 auto', padding: '20px 16px' }}>
 
         {/* ---- AVATAR + INFOS + BOUTON SUIVRE ---- */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px',
+          background: '#fff', border: `2px solid ${INK}`, boxShadow: `4px 4px 0 ${INK}`,
+          borderRadius: '2px', padding: '16px',
+        }}>
           <div style={{
-            width: '64px', height: '64px', borderRadius: '50%',
-            background: 'var(--accent)',
+            width: '60px', height: '60px', borderRadius: '50%',
+            background: YELLOW, border: `2px solid ${INK}`, boxShadow: `2px 2px 0 ${INK}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '24px', fontWeight: 700, color: '#fff', flexShrink: 0,
+            fontSize: '22px', fontWeight: 700, color: INK, flexShrink: 0,
+            fontFamily: 'var(--font-title)',
           }}>
             {displayName[0].toUpperCase()}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontWeight: 700, fontSize: '18px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-              {displayName}
-            </p>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              {recos.length} reco{recos.length > 1 ? 's' : ''} · {savedRecos.length} sauvegarde{savedRecos.length > 1 ? 's' : ''}
+            <p style={{ fontWeight: 700, fontSize: '20px', color: INK, fontFamily: 'var(--font-title)', lineHeight: 1.1 }}>{displayName}</p>
+            <p style={{ fontSize: '11px', color: INK, opacity: 0.5, marginTop: '2px' }}>@{profile.username}</p>
+            <p style={{ fontSize: '10px', color: INK, fontWeight: 700, letterSpacing: '0.08em', marginTop: '4px', opacity: 0.5 }}>
+              {recos.length} RECOS · {savedRecos.length} SAUV.
             </p>
           </div>
-          <button
-            onClick={toggleSuivi}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              background: isSuivi ? 'none' : 'var(--accent)',
-              color: isSuivi ? 'var(--text-muted)' : '#fff',
-              border: isSuivi ? '1px solid var(--border)' : 'none',
-              borderRadius: 'var(--radius-full)',
-              padding: '8px 16px', fontSize: '13px', fontWeight: 600,
-              cursor: 'pointer', flexShrink: 0,
-            }}
-          >
-            {isSuivi ? <><UserMinus size={14} />Suivi ✓</> : <><UserPlus size={14} />Suivre</>}
+          <button onClick={toggleSuivi} style={{
+            display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0,
+            background: isSuivi ? 'transparent' : YELLOW,
+            color: INK, border: `2px solid ${INK}`, borderRadius: '2px',
+            boxShadow: isSuivi ? 'none' : `3px 3px 0 ${INK}`,
+            padding: '8px 14px', fontSize: '11px', fontWeight: 700,
+            cursor: 'pointer', letterSpacing: '0.08em', textTransform: 'uppercase',
+          }}>
+            {isSuivi ? <><UserMinus size={12} />Suivi ✓</> : <><UserPlus size={12} />Suivre</>}
           </button>
         </div>
 
         {/* ---- ONGLETS ---- */}
-        <div style={{
-          display: 'flex', gap: '4px',
-          background: 'var(--bg-secondary)', borderRadius: 'var(--radius-full)',
-          padding: '4px', marginBottom: '16px',
-        }}>
-          {(['recos', 'sauvegardes', 'contacts'] as Tab[]).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                flex: 1, padding: '8px',
-                background: tab === t ? '#fff' : 'none',
-                border: 'none', borderRadius: 'var(--radius-full)',
-                fontSize: '12px', fontWeight: tab === t ? 600 : 400,
-                color: tab === t ? 'var(--accent)' : 'var(--text-muted)',
-                cursor: 'pointer',
-                boxShadow: tab === t ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s',
-              }}
-            >
-              {t === 'recos' ? `Recos (${recos.length})` : t === 'sauvegardes' ? `Sauvegardé (${savedRecos.length})` : `Contacts (${following.length})`}
+        <div style={{ display: 'flex', border: `2px solid ${INK}`, borderRadius: '2px', marginBottom: '16px', overflow: 'hidden' }}>
+          {(['recos', 'sauvegardes', 'contacts'] as Tab[]).map((t, i) => (
+            <button key={t} onClick={() => setTab(t)} style={{
+              flex: 1, padding: '9px 4px',
+              background: tab === t ? YELLOW : 'transparent',
+              borderRight: i < 2 ? `2px solid ${INK}` : 'none',
+              border: 'none', borderRight: i < 2 ? `2px solid ${INK}` : 'none',
+              fontSize: '9px', fontWeight: 700, letterSpacing: '0.1em',
+              color: INK, cursor: 'pointer', textTransform: 'uppercase',
+              transition: 'background 0.1s',
+            }}>
+              {t === 'recos' ? `Recos (${recos.length})` : t === 'sauvegardes' ? `Sauv. (${savedRecos.length})` : `Contacts (${following.length})`}
             </button>
           ))}
         </div>
 
-        {/* ---- CONTENU ONGLET ---- */}
+        {/* ---- ONGLET RECOS ---- */}
         {tab === 'recos' && (
           recos.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-              <div style={{ marginBottom: '12px', opacity: 0.3, display: 'flex', justifyContent: 'center' }}>
-                <Sprout size={36} strokeWidth={1.5} />
-              </div>
-              <p style={{ fontSize: '14px' }}>Aucune reco pour l'instant</p>
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: INK }}>
+              <div style={{ marginBottom: '12px', opacity: 0.15, display: 'flex', justifyContent: 'center' }}><Sprout size={40} strokeWidth={1.5} /></div>
+              <p style={{ fontFamily: 'var(--font-title)', fontSize: '16px', fontStyle: 'italic', opacity: 0.4 }}>Aucune reco pour l'instant</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {recos.map(reco => renderReco(reco, false))}
             </div>
           )
@@ -384,14 +317,12 @@ export default function ProfilPublic() {
 
         {tab === 'sauvegardes' && (
           savedRecos.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-              <div style={{ marginBottom: '12px', opacity: 0.3, display: 'flex', justifyContent: 'center' }}>
-                <Bookmark size={36} strokeWidth={1.5} />
-              </div>
-              <p style={{ fontSize: '14px' }}>Aucune sauvegarde pour l'instant</p>
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: INK }}>
+              <div style={{ marginBottom: '12px', opacity: 0.15, display: 'flex', justifyContent: 'center' }}><Bookmark size={40} strokeWidth={1.5} /></div>
+              <p style={{ fontFamily: 'var(--font-title)', fontSize: '16px', fontStyle: 'italic', opacity: 0.4 }}>Aucune sauvegarde pour l'instant</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {savedRecos.map(reco => renderReco(reco, true))}
             </div>
           )
@@ -399,38 +330,30 @@ export default function ProfilPublic() {
 
         {tab === 'contacts' && (
           following.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-              <div style={{ marginBottom: '12px', opacity: 0.3, display: 'flex', justifyContent: 'center' }}>
-                <Users size={36} strokeWidth={1.5} />
-              </div>
-              <p style={{ fontSize: '14px' }}>Ne suit personne pour l'instant</p>
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: INK }}>
+              <div style={{ marginBottom: '12px', opacity: 0.15, display: 'flex', justifyContent: 'center' }}><Users size={40} strokeWidth={1.5} /></div>
+              <p style={{ fontFamily: 'var(--font-title)', fontSize: '16px', fontStyle: 'italic', opacity: 0.4 }}>Ne suit personne pour l'instant</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {following.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => router.push(`/u/${p.username}`)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    background: 'var(--bg-card)', border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-sm)', padding: '10px 14px',
-                    cursor: 'pointer', textAlign: 'left', width: '100%',
-                  }}
-                >
+                <button key={p.id} onClick={() => router.push(`/u/${p.username}`)} style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  background: '#fff', border: `2px solid ${INK}`, boxShadow: `3px 3px 0 ${INK}`,
+                  borderRadius: '2px', padding: '10px 14px',
+                  cursor: 'pointer', textAlign: 'left', width: '100%',
+                }}>
                   <div style={{
                     width: '32px', height: '32px', borderRadius: '50%',
-                    background: 'var(--accent)',
+                    background: YELLOW, border: `2px solid ${INK}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '13px', fontWeight: 700, color: '#fff', flexShrink: 0,
+                    fontSize: '13px', fontWeight: 700, color: INK, flexShrink: 0, fontFamily: 'var(--font-title)',
                   }}>
                     {(p.full_name || p.username || '?')[0].toUpperCase()}
                   </div>
                   <div>
-                    <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-                      {p.full_name || p.username}
-                    </p>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@{p.username}</p>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: INK, fontFamily: 'var(--font-title)' }}>{p.full_name || p.username}</p>
+                    <p style={{ fontSize: '11px', color: INK, opacity: 0.5 }}>@{p.username}</p>
                   </div>
                 </button>
               ))}
@@ -440,6 +363,7 @@ export default function ProfilPublic() {
       </main>
 
       <NavBar current="" router={router} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

@@ -58,30 +58,32 @@ export default function Sauvegardes() {
     setSauvegardes(prev => prev.filter(s => s.id !== sauvegardeId))
   }
 
+  const INK = '#0a0a0a'
+  const YELLOW = '#FFD600'
+
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Chargement...</p>
+    <div style={{ minHeight: '100vh', background: '#FAFAF0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: `3px solid ${INK}`, borderTopColor: YELLOW, animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '80px' }}>
+    <div style={{ minHeight: '100vh', background: '#FAFAF0', paddingBottom: '80px' }}>
 
       {/* ---- HEADER ---- */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 10,
-        background: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid var(--border-light)',
-        padding: '0 16px', height: '56px',
+        background: '#FAFAF0', borderBottom: `2px solid ${INK}`,
+        padding: '0 20px', height: '56px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         maxWidth: '520px', margin: '0 auto',
       }}>
-        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>
+        <span style={{ fontWeight: 700, fontSize: '18px', color: INK, fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
           sauvegardes
         </span>
-        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-          {sauvegardesFiltrees.length} reco{sauvegardesFiltrees.length > 1 ? 's' : ''}
+        <span style={{ fontSize: '10px', color: INK, fontWeight: 700, letterSpacing: '0.12em', opacity: 0.4 }}>
+          {sauvegardesFiltrees.length} RECO{sauvegardesFiltrees.length > 1 ? 'S' : ''}
         </span>
       </header>
 
@@ -89,44 +91,25 @@ export default function Sauvegardes() {
       {categories.length > 1 && (
         <div style={{
           position: 'sticky', top: '56px', zIndex: 9,
-          background: 'rgba(255,255,255,0.92)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid var(--border-light)',
+          background: '#FAFAF0', borderBottom: `2px solid ${INK}`,
           maxWidth: '520px', margin: '0 auto',
         }}>
-          <div style={{
-            display: 'flex', gap: '6px', padding: '10px 16px',
-            overflowX: 'auto', scrollbarWidth: 'none',
-          }}>
-            <button
-              onClick={() => setFiltre(null)}
-              style={{
-                flexShrink: 0, padding: '5px 13px',
-                borderRadius: 'var(--radius-full)', border: 'none', cursor: 'pointer',
-                fontSize: '12px', fontWeight: filtre === null ? 600 : 400,
-                background: filtre === null ? 'var(--accent)' : 'var(--bg-secondary)',
-                color: filtre === null ? '#fff' : 'var(--text-muted)',
-                transition: 'all 0.15s',
-              }}
-            >
-              Tout
-            </button>
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setFiltre(filtre === cat ? null : cat)}
+          <div style={{ display: 'flex', gap: '6px', padding: '10px 16px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+            {[{ key: null, label: 'TOUT' }, ...categories.map(c => ({ key: c, label: c.toUpperCase() }))].map(({ key, label }) => (
+              <button key={label} onClick={() => setFiltre(key)}
                 style={{
-                  flexShrink: 0, padding: '5px 13px',
+                  flexShrink: 0, padding: '5px 12px',
+                  border: `2px solid ${INK}`, borderRadius: '2px', cursor: 'pointer',
+                  fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em',
+                  background: filtre === key ? YELLOW : 'transparent',
+                  color: INK,
+                  boxShadow: filtre === key ? `2px 2px 0 ${INK}` : 'none',
+                  transform: filtre === key ? 'translate(-1px, -1px)' : 'none',
+                  transition: 'all 0.1s',
                   display: 'flex', alignItems: 'center', gap: '5px',
-                  borderRadius: 'var(--radius-full)', border: 'none', cursor: 'pointer',
-                  fontSize: '12px', fontWeight: filtre === cat ? 600 : 400,
-                  background: filtre === cat ? 'var(--accent)' : 'var(--bg-secondary)',
-                  color: filtre === cat ? '#fff' : 'var(--text-muted)',
-                  transition: 'all 0.15s',
-                }}
-              >
-                <TypeIcon type={cat} size={11} color={filtre === cat ? '#fff' : 'currentColor'} />
-                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                }}>
+                {key && <TypeIcon type={key} size={10} color={INK} />}
+                {label}
               </button>
             ))}
           </div>
@@ -134,112 +117,68 @@ export default function Sauvegardes() {
       )}
 
       <main style={{ maxWidth: '520px', margin: '0 auto', padding: '16px' }}>
-
         {sauvegardesFiltrees.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
-            <div style={{ marginBottom: '12px', opacity: 0.3, display: 'flex', justifyContent: 'center' }}>
-              <Bookmark size={32} strokeWidth={1.5} />
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: INK }}>
+            <div style={{ marginBottom: '12px', opacity: 0.15, display: 'flex', justifyContent: 'center' }}>
+              <Bookmark size={40} strokeWidth={1.5} />
             </div>
-            <p style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>Aucune sauvegarde</p>
-            <p style={{ fontSize: '13px', marginTop: '6px' }}>
-              Appuie sur "Sauvegarder" sur une reco du feed
-            </p>
+            <p style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontStyle: 'italic', opacity: 0.4 }}>Aucune sauvegarde</p>
+            <p style={{ fontSize: '13px', marginTop: '6px', opacity: 0.4 }}>Appuie sur "Sauvegarder" sur une reco</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {sauvegardesFiltrees.map(sauvegarde => {
               const reco = sauvegarde.recommendations
               if (!reco) return null
-
               return (
                 <div key={sauvegarde.id} style={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
+                  background: '#fff', border: `2px solid ${INK}`,
+                  boxShadow: `4px 4px 0 ${INK}`, borderRadius: '2px',
                   overflow: 'hidden',
                 }}>
-
-                  {/* Affiche pleine largeur */}
-                  {reco.poster_url && (
-                    <img
-                      src={reco.poster_url}
-                      alt={reco.title}
-                      style={{
-                        width: '100%',
-                        aspectRatio: '2/3',
-                        objectFit: 'cover',
-                        objectPosition: 'center top',
-                        display: 'block',
-                      }}
-                    />
-                  )}
-
-                  <div style={{ padding: '14px 16px' }}>
-
-                    {/* Badge type */}
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '4px',
-                      fontSize: '10px', fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase', letterSpacing: '0.06em',
-                      marginBottom: '4px',
-                    }}>
-                      <TypeIcon type={reco.type} size={11} />
-                      {reco.type}
-                    </span>
-
-                    {/* Titre */}
-                    <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '2px', fontFamily: 'var(--font-title)' }}>
-                      {reco.title}
-                    </p>
-                    {reco.creator && (
-                      <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                        {reco.creator}
-                      </p>
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', padding: '14px 16px' }}>
+                    {reco.poster_url && (
+                      <img src={reco.poster_url} alt={reco.title}
+                        style={{ width: '52px', height: '70px', objectFit: 'cover', objectPosition: 'center top', borderRadius: '2px', border: `1.5px solid ${INK}`, flexShrink: 0 }} />
                     )}
-
-                    {/* Commentaire */}
-                    {reco.comment && (
-                      <p style={{
-                        fontSize: '14px', color: 'var(--text-secondary)',
-                        fontStyle: 'italic', lineHeight: '1.5',
-                        borderLeft: '2px solid var(--border)',
-                        paddingLeft: '10px', marginTop: '8px', marginBottom: '8px',
-                      }}>
-                        {reco.comment}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '9px', fontWeight: 700, color: INK, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.4, marginBottom: '4px' }}>
+                        <TypeIcon type={reco.type} size={10} color={INK} />{reco.type}
+                      </span>
+                      <p style={{ fontWeight: 700, fontSize: '17px', color: INK, fontFamily: 'var(--font-title)', lineHeight: 1.1, marginBottom: '3px' }}>
+                        {reco.title}
                       </p>
-                    )}
-
-                    {/* Pied : auteur + lien + retirer */}
-                    <div style={{
-                      display: 'flex', justifyContent: 'space-between',
-                      alignItems: 'center', marginTop: '10px',
-                      paddingTop: '10px', borderTop: '1px solid var(--border-light)',
-                    }}>
-                      <div>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                          par {reco.profiles?.full_name || reco.profiles?.username || 'Anonyme'}
+                      {reco.creator && <p style={{ fontSize: '12px', color: INK, opacity: 0.5 }}>{reco.creator}</p>}
+                      {reco.comment && (
+                        <p style={{ fontSize: '13px', color: INK, fontStyle: 'italic', lineHeight: 1.6, borderLeft: `3px solid ${YELLOW}`, paddingLeft: '10px', marginTop: '8px', fontFamily: 'var(--font-title)', opacity: 0.75 }}>
+                          "{reco.comment}"
                         </p>
-                        {reco.url && (
-                          <a href={reco.url} target="_blank" rel="noopener noreferrer"
-                            style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
-                            Voir →
-                          </a>
-                        )}
-                      </div>
+                      )}
+                    </div>
+                  </div>
 
-                      <button
-                        onClick={() => retirerSauvegarde(sauvegarde.id)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '4px',
-                          background: 'none', border: '1px solid var(--border)',
-                          borderRadius: 'var(--radius-full)',
-                          padding: '5px 12px', fontSize: '12px',
-                          color: 'var(--text-muted)', cursor: 'pointer',
-                        }}
-                      >
-                        <X size={12} />
-                        Retirer
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '10px 16px', borderTop: `2px solid ${INK}`,
+                    background: '#FAFAF0',
+                  }}>
+                    <p style={{ fontSize: '11px', color: INK, opacity: 0.5, fontWeight: 700, letterSpacing: '0.04em' }}>
+                      par {reco.profiles?.full_name || reco.profiles?.username || 'Anonyme'}
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {reco.url && (
+                        <a href={reco.url} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: '11px', color: INK, fontWeight: 700, letterSpacing: '0.06em', textDecoration: 'none', border: `2px solid ${INK}`, borderRadius: '2px', padding: '4px 10px' }}>
+                          VOIR →
+                        </a>
+                      )}
+                      <button onClick={() => retirerSauvegarde(sauvegarde.id)} style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        background: 'none', border: `2px solid ${INK}`, borderRadius: '2px',
+                        padding: '4px 10px', fontSize: '11px', fontWeight: 700,
+                        color: INK, cursor: 'pointer', letterSpacing: '0.04em',
+                      }}>
+                        <X size={11} strokeWidth={2.5} />Retirer
                       </button>
                     </div>
                   </div>
@@ -251,6 +190,7 @@ export default function Sauvegardes() {
       </main>
 
       <NavBar current="/sauvegardes" router={router} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

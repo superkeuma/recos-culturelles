@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'
 // ============================================
 // PAGE CONTACTS — redesign minimaliste
 // ============================================
@@ -111,26 +112,57 @@ export default function Contacts() {
   // --- Initiales pour l'avatar ---
   const initiales = (nom: string) => nom?.[0]?.toUpperCase() || '?'
 
+  const INK = '#0a0a0a'
+  const YELLOW = '#FFD600'
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: '10px', fontWeight: 700, color: INK,
+    textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '10px', opacity: 0.5,
+  }
+
+  const avatarStyle: React.CSSProperties = {
+    width: '36px', height: '36px', borderRadius: '50%',
+    background: YELLOW, border: `2px solid ${INK}`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '14px', fontWeight: 700, color: INK, flexShrink: 0,
+    fontFamily: 'var(--font-title)',
+  }
+
+  const btnSuivre: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: '5px',
+    background: YELLOW, color: INK,
+    border: `2px solid ${INK}`, borderRadius: '2px',
+    boxShadow: `2px 2px 0 ${INK}`,
+    padding: '5px 12px', fontSize: '11px', fontWeight: 700,
+    cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase',
+  }
+
+  const rowStyle: React.CSSProperties = {
+    display: 'flex', alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '10px 14px',
+    borderBottom: `1px solid rgba(10,10,10,0.1)`,
+  }
+
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Chargement...</p>
+    <div style={{ minHeight: '100vh', background: '#FAFAF0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: `3px solid ${INK}`, borderTopColor: YELLOW, animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '80px' }}>
+    <div style={{ minHeight: '100vh', background: '#FAFAF0', paddingBottom: '80px' }}>
 
       {/* ---- HEADER ---- */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 10,
-        background: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid var(--border-light)',
-        padding: '0 16px', height: '56px',
+        background: '#FAFAF0', borderBottom: `2px solid ${INK}`,
+        padding: '0 20px', height: '56px',
         display: 'flex', alignItems: 'center',
         maxWidth: '520px', margin: '0 auto',
       }}>
-        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>
+        <span style={{ fontWeight: 700, fontSize: '18px', color: INK, fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
           contacts
         </span>
       </header>
@@ -139,92 +171,42 @@ export default function Contacts() {
 
         {/* ---- BARRE DE RECHERCHE ---- */}
         <div style={{ position: 'relative', marginBottom: '8px' }}>
-          <Search
-            size={15}
-            style={{
-              position: 'absolute', left: '12px', top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--text-muted)',
-            }}
-          />
-          <input
-            type="text"
-            value={recherche}
-            onChange={e => rechercherUtilisateur(e.target.value)}
+          <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: INK, opacity: 0.4 }} />
+          <input type="text" value={recherche} onChange={e => rechercherUtilisateur(e.target.value)}
             placeholder="Rechercher un pseudo..."
             style={{
               width: '100%', padding: '11px 14px 11px 36px',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-full)',
-              fontSize: '14px', color: 'var(--text-primary)',
-              background: 'var(--bg-secondary)', outline: 'none',
+              border: `2px solid ${INK}`, borderRadius: '2px',
+              fontSize: '14px', color: INK,
+              background: '#FAFAF0', outline: 'none',
+              fontFamily: 'var(--font)',
             }}
           />
         </div>
 
-        {/* Message retour */}
         {message && (
-          <p style={{ fontSize: '13px', color: '#22c55e', textAlign: 'center', marginBottom: '8px' }}>
+          <p style={{ fontSize: '12px', color: '#22c55e', fontWeight: 700, textAlign: 'center', marginBottom: '8px', letterSpacing: '0.06em' }}>
             {message}
           </p>
         )}
 
-        {/* ---- RÉSULTATS DE RECHERCHE ---- */}
+        {/* ---- RÉSULTATS ---- */}
         {resultats.length > 0 && (
-          <div style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md)',
-            overflow: 'hidden', marginBottom: '20px',
-          }}>
+          <div style={{ background: '#fff', border: `2px solid ${INK}`, boxShadow: `4px 4px 0 ${INK}`, borderRadius: '2px', overflow: 'hidden', marginBottom: '20px' }}>
             {resultats.map(profil => (
-              <div key={profil.id} style={{
-                display: 'flex', alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 16px',
-                borderBottom: '1px solid var(--border-light)',
-              }}>
-                <button
-                  onClick={() => router.push(`/u/${profil.username}`)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left',
-                  }}
-                >
-                  <div style={{
-                    width: '36px', height: '36px', borderRadius: '50%',
-                    background: 'var(--bg-secondary)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
-                  }}>
-                    {initiales(profil.username)}
-                  </div>
-                  <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    @{profil.username}
-                  </p>
+              <div key={profil.id} style={rowStyle}>
+                <button onClick={() => router.push(`/u/${profil.username}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+                  <div style={avatarStyle}>{initiales(profil.username)}</div>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: INK }}>@{profil.username}</p>
                 </button>
-
                 {estSuivi(profil.id) ? (
-                  <span style={{
-                    fontSize: '12px', color: 'var(--text-muted)',
-                    background: 'var(--bg-secondary)',
-                    padding: '5px 12px', borderRadius: 'var(--radius-full)',
-                  }}>
-                    Suivi ✓
+                  <span style={{ fontSize: '10px', color: INK, background: YELLOW, border: `2px solid ${INK}`, padding: '4px 10px', borderRadius: '2px', fontWeight: 700, letterSpacing: '0.06em' }}>
+                    SUIVI ✓
                   </span>
                 ) : (
-                  <button
-                    onClick={() => suivre(profil.id)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '5px',
-                      background: 'var(--accent)', color: '#fff',
-                      border: 'none', borderRadius: 'var(--radius-full)',
-                      padding: '6px 14px', fontSize: '13px', fontWeight: 500,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <UserPlus size={13} />
-                    Suivre
+                  <button onClick={() => suivre(profil.id)} style={btnSuivre}>
+                    <UserPlus size={12} />Suivre
                   </button>
                 )}
               </div>
@@ -235,56 +217,17 @@ export default function Contacts() {
         {/* ---- SUGGESTIONS ---- */}
         {suggestions.length > 0 && recherche.length < 2 && (
           <div style={{ marginBottom: '24px' }}>
-            <p style={{
-              fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)',
-              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px',
-            }}>
-              Suggestions
-            </p>
-            <div style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              overflow: 'hidden',
-            }}>
+            <p style={labelStyle}>Suggestions</p>
+            <div style={{ background: '#fff', border: `2px solid ${INK}`, boxShadow: `4px 4px 0 ${INK}`, borderRadius: '2px', overflow: 'hidden' }}>
               {suggestions.map(s => (
-                <div key={s.following_id} style={{
-                  display: 'flex', alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 16px',
-                  borderBottom: '1px solid var(--border-light)',
-                }}>
-                  <button
-                    onClick={() => router.push(`/u/${s.profiles.username}`)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left',
-                    }}
-                  >
-                    <div style={{
-                      width: '36px', height: '36px', borderRadius: '50%',
-                      background: 'var(--bg-secondary)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
-                    }}>
-                      {initiales(s.profiles.username)}
-                    </div>
-                    <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                      @{s.profiles.username}
-                    </p>
+                <div key={s.following_id} style={rowStyle}>
+                  <button onClick={() => router.push(`/u/${s.profiles.username}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+                    <div style={avatarStyle}>{initiales(s.profiles.username)}</div>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: INK }}>@{s.profiles.username}</p>
                   </button>
-                  <button
-                    onClick={() => suivre(s.following_id)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '5px',
-                      background: 'var(--accent)', color: '#fff',
-                      border: 'none', borderRadius: 'var(--radius-full)',
-                      padding: '6px 14px', fontSize: '13px', fontWeight: 500,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <UserPlus size={13} />
-                    Suivre
+                  <button onClick={() => suivre(s.following_id)} style={btnSuivre}>
+                    <UserPlus size={12} />Suivre
                   </button>
                 </div>
               ))}
@@ -292,67 +235,32 @@ export default function Contacts() {
           </div>
         )}
 
-        {/* ---- LISTE DES CONTACTS ---- */}
-        <p style={{
-          fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)',
-          textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px',
-        }}>
-          Mes contacts ({contacts.length})
-        </p>
+        {/* ---- MES CONTACTS ---- */}
+        <p style={labelStyle}>Mes contacts ({contacts.length})</p>
 
         {contacts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
-            <Search size={32} style={{ marginBottom: '12px', opacity: 0.3 }} />
-            <p style={{ fontSize: '14px' }}>Recherche des amis par leur pseudo</p>
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: INK }}>
+            <Search size={32} style={{ marginBottom: '12px', opacity: 0.15 }} />
+            <p style={{ fontSize: '14px', fontFamily: 'var(--font-title)', fontStyle: 'italic', opacity: 0.5 }}>
+              Recherche des amis par leur pseudo
+            </p>
           </div>
         ) : (
-          <div style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md)',
-            overflow: 'hidden',
-          }}>
+          <div style={{ background: '#fff', border: `2px solid ${INK}`, boxShadow: `4px 4px 0 ${INK}`, borderRadius: '2px', overflow: 'hidden' }}>
             {contacts.map(contact => (
-              <div key={contact.following_id} style={{
-                display: 'flex', alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 16px',
-                borderBottom: '1px solid var(--border-light)',
-              }}>
-                <button
-                  onClick={() => contact.profiles?.username && router.push(`/u/${contact.profiles.username}`)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left',
-                  }}
-                >
-                  <div style={{
-                    width: '36px', height: '36px', borderRadius: '50%',
-                    background: 'var(--bg-secondary)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
-                  }}>
-                    {initiales(contact.profiles?.username)}
-                  </div>
-                  <div>
-                    <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                      @{contact.profiles?.username}
-                    </p>
-                  </div>
+              <div key={contact.following_id} style={rowStyle}>
+                <button onClick={() => contact.profiles?.username && router.push(`/u/${contact.profiles.username}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+                  <div style={avatarStyle}>{initiales(contact.profiles?.username)}</div>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: INK }}>@{contact.profiles?.username}</p>
                 </button>
-
-                <button
-                  onClick={() => nePlusSuivre(contact.following_id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '5px',
-                    background: 'none', border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-full)',
-                    padding: '5px 12px', fontSize: '12px',
-                    color: 'var(--text-muted)', cursor: 'pointer',
-                  }}
-                >
-                  <UserMinus size={12} />
-                  Retirer
+                <button onClick={() => nePlusSuivre(contact.following_id)} style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  background: 'none', border: `2px solid ${INK}`, borderRadius: '2px',
+                  padding: '5px 10px', fontSize: '11px', fontWeight: 700,
+                  color: INK, cursor: 'pointer', letterSpacing: '0.04em',
+                }}>
+                  <UserMinus size={11} />Retirer
                 </button>
               </div>
             ))}
@@ -361,6 +269,7 @@ export default function Contacts() {
       </main>
 
       <NavBar current="/contacts" router={router} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

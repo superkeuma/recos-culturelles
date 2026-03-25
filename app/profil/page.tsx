@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'
 // ============================================
 // PAGE PROFIL — onglets recos / contacts / paramètres
 // ============================================
@@ -148,39 +149,76 @@ export default function Profil() {
   }
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Chargement...</p>
+    <div style={{ minHeight: '100vh', background: '#FAFAF0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: '3px solid #0a0a0a', borderTopColor: '#FFD600', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 
   const nomAffiché = displayName || username || '?'
 
+  const INK = '#0a0a0a'
+  const YELLOW = '#FFD600'
+  const RED = '#FF2D55'
+
+  const cardStyle: React.CSSProperties = {
+    background: '#fff', border: `2px solid ${INK}`,
+    boxShadow: `4px 4px 0 ${INK}`, borderRadius: '2px', padding: '18px',
+  }
+  const labelStyle: React.CSSProperties = {
+    fontSize: '10px', fontWeight: 700, color: INK,
+    textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '10px',
+    opacity: 0.5,
+  }
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '9px 12px',
+    border: `2px solid ${INK}`, borderRadius: '2px',
+    fontSize: '14px', color: INK,
+    background: '#FAFAF0', outline: 'none', boxSizing: 'border-box',
+    fontFamily: 'var(--font)',
+  }
+  const btnPrimary: React.CSSProperties = {
+    width: '100%', padding: '11px',
+    background: YELLOW, color: INK,
+    border: `2px solid ${INK}`, borderRadius: '2px',
+    boxShadow: `3px 3px 0 ${INK}`,
+    fontSize: '13px', fontWeight: 700, letterSpacing: '0.08em',
+    cursor: 'pointer', textTransform: 'uppercase',
+  }
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '80px' }}>
+    <div style={{ minHeight: '100vh', background: '#FAFAF0', paddingBottom: '80px' }}>
 
       {/* ---- HEADER ---- */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 10,
-        background: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid var(--border-light)',
-        padding: '0 16px', height: '56px',
+        background: '#FAFAF0',
+        borderBottom: `2px solid ${INK}`,
+        padding: '0 20px', height: '56px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         maxWidth: '520px', margin: '0 auto',
       }}>
-        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)', fontFamily: 'var(--font-title)' }}>profil</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <span style={{ fontWeight: 700, fontSize: '18px', color: INK, fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
+          profil
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             onClick={() => router.push('/notifications')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', position: 'relative', padding: 0 }}
+            style={{
+              background: unreadNotifs > 0 ? YELLOW : 'none',
+              border: `2px solid ${INK}`, borderRadius: '2px',
+              boxShadow: unreadNotifs > 0 ? `2px 2px 0 ${INK}` : 'none',
+              cursor: 'pointer', display: 'flex', position: 'relative', padding: '4px 6px',
+            }}
           >
-            <Bell size={20} color={unreadNotifs > 0 ? 'var(--accent)' : 'var(--text-muted)'} strokeWidth={unreadNotifs > 0 ? 2 : 1.5} />
+            <Bell size={18} color={INK} strokeWidth={2} />
             {unreadNotifs > 0 && (
               <span style={{
-                position: 'absolute', top: '-4px', right: '-4px',
+                position: 'absolute', top: '-6px', right: '-6px',
                 width: '16px', height: '16px',
-                background: 'var(--accent)', color: '#fff',
-                borderRadius: '50%', fontSize: '10px', fontWeight: 700,
+                background: RED, color: '#fff',
+                borderRadius: '50%', border: `1.5px solid ${INK}`,
+                fontSize: '9px', fontWeight: 700,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {unreadNotifs > 9 ? '9+' : unreadNotifs}
@@ -191,12 +229,14 @@ export default function Profil() {
             onClick={handleLogout}
             style={{
               display: 'flex', alignItems: 'center', gap: '5px',
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: '13px', color: 'var(--text-muted)',
+              background: 'none', border: `2px solid ${INK}`, borderRadius: '2px',
+              padding: '5px 10px', cursor: 'pointer',
+              fontSize: '11px', fontWeight: 700, color: INK,
+              letterSpacing: '0.06em', textTransform: 'uppercase',
             }}
           >
-            <LogOut size={15} />
-            Déconnexion
+            <LogOut size={13} />
+            Sortir
           </button>
         </div>
       </header>
@@ -204,48 +244,55 @@ export default function Profil() {
       <main style={{ maxWidth: '520px', margin: '0 auto', padding: '20px 16px' }}>
 
         {/* ---- AVATAR + NOM + USERNAME ---- */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px',
+          background: '#fff', border: `2px solid ${INK}`,
+          boxShadow: `4px 4px 0 ${INK}`, borderRadius: '2px',
+          padding: '16px',
+        }}>
           <div style={{
-            width: '64px', height: '64px', borderRadius: '50%',
-            background: 'var(--accent)',
+            width: '60px', height: '60px', borderRadius: '50%',
+            background: YELLOW, border: `2px solid ${INK}`,
+            boxShadow: `2px 2px 0 ${INK}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '24px', fontWeight: 700, color: '#fff', flexShrink: 0,
+            fontSize: '22px', fontWeight: 700, color: INK, flexShrink: 0,
+            fontFamily: 'var(--font-title)',
           }}>
             {nomAffiché[0].toUpperCase()}
           </div>
           <div>
-            <p style={{ fontWeight: 700, fontSize: '18px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
+            <p style={{ fontWeight: 700, fontSize: '20px', color: INK, fontFamily: 'var(--font-title)', lineHeight: 1.1 }}>
               {nomAffiché}
             </p>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>@{username}</p>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              {mesRecos.length} reco{mesRecos.length > 1 ? 's' : ''} · {following.length} abonnement{following.length > 1 ? 's' : ''} · {followers.length} abonné{followers.length > 1 ? 's' : ''}
+            <p style={{ fontSize: '12px', color: INK, opacity: 0.5, marginTop: '2px' }}>@{username}</p>
+            <p style={{ fontSize: '11px', color: INK, marginTop: '4px', fontWeight: 700, letterSpacing: '0.06em', opacity: 0.6 }}>
+              {mesRecos.length} RECOS · {following.length} SUIVIS · {followers.length} ABONNÉS
             </p>
           </div>
         </div>
 
         {/* ---- ONGLETS ---- */}
         <div style={{
-          display: 'flex', gap: '4px',
-          background: 'var(--bg-secondary)', borderRadius: 'var(--radius-full)',
-          padding: '4px', marginBottom: '20px',
+          display: 'flex', gap: '0px',
+          border: `2px solid ${INK}`, borderRadius: '2px',
+          marginBottom: '20px', overflow: 'hidden',
         }}>
-          {(['recos', 'contacts', 'parametres'] as Tab[]).map(t => (
+          {(['recos', 'contacts', 'parametres'] as Tab[]).map((t, i) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               style={{
-                flex: 1, padding: '8px',
-                background: tab === t ? '#fff' : 'none',
-                border: 'none', borderRadius: 'var(--radius-full)',
-                fontSize: '12px', fontWeight: tab === t ? 600 : 400,
-                color: tab === t ? 'var(--accent)' : 'var(--text-muted)',
-                cursor: 'pointer',
-                boxShadow: tab === t ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s',
+                flex: 1, padding: '9px 4px',
+                background: tab === t ? YELLOW : 'transparent',
+                borderRight: i < 2 ? `2px solid ${INK}` : 'none',
+                border: 'none', borderRight: i < 2 ? `2px solid ${INK}` : 'none',
+                fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em',
+                color: INK, cursor: 'pointer',
+                textTransform: 'uppercase',
+                transition: 'background 0.1s',
               }}
             >
-              {t === 'recos' ? `Recos (${mesRecos.length})` : t === 'contacts' ? 'Contacts' : 'Paramètres'}
+              {t === 'recos' ? `Recos (${mesRecos.length})` : t === 'contacts' ? 'Contacts' : 'Réglages'}
             </button>
           ))}
         </div>
@@ -253,84 +300,67 @@ export default function Profil() {
         {/* ---- ONGLET RECOS ---- */}
         {tab === 'recos' && (
           mesRecos.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-              <div style={{ marginBottom: '12px', opacity: 0.3, display: 'flex', justifyContent: 'center' }}>
-                <Sprout size={36} strokeWidth={1.5} />
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: INK }}>
+              <div style={{ marginBottom: '12px', opacity: 0.2, display: 'flex', justifyContent: 'center' }}>
+                <Sprout size={40} strokeWidth={1.5} />
               </div>
-              <p style={{ fontSize: '14px' }}>Tu n'as pas encore partagé de reco</p>
+              <p style={{ fontSize: '14px', fontFamily: 'var(--font-title)', fontStyle: 'italic' }}>
+                Tu n'as pas encore partagé de reco
+              </p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {mesRecos.map(reco => (
                 <div key={reco.id} style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '12px 14px',
+                  background: '#fff', border: `2px solid ${INK}`,
+                  boxShadow: `3px 3px 0 ${INK}`, borderRadius: '2px',
+                  padding: '10px 12px',
                 }}>
                   {reco.poster_url ? (
-                    <img
-                      src={reco.poster_url}
-                      alt={reco.title}
-                      style={{ width: '36px', height: '48px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }}
+                    <img src={reco.poster_url} alt={reco.title}
+                      style={{ width: '36px', height: '48px', objectFit: 'cover', borderRadius: '2px', border: `1.5px solid ${INK}`, flexShrink: 0 }}
                     />
                   ) : (
                     <div style={{
                       width: '36px', height: '36px', flexShrink: 0,
-                      background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--text-muted)',
+                      background: '#FAFAF0', border: `1.5px solid ${INK}`, borderRadius: '2px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: INK,
                     }}>
                       <TypeIcon type={reco.type} size={16} />
                     </div>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
+                    <p style={{ fontWeight: 700, fontSize: '14px', color: INK, fontFamily: 'var(--font-title)' }}>
                       {reco.title}
                     </p>
-                    {reco.creator && (
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{reco.creator}</p>
-                    )}
+                    {reco.creator && <p style={{ fontSize: '11px', color: INK, opacity: 0.5 }}>{reco.creator}</p>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <p style={{ fontSize: '10px', color: INK, opacity: 0.4, letterSpacing: '0.04em' }}>
                       {formatDate(reco.created_at)}
                     </p>
                     {deletingId === reco.id ? (
                       <div style={{ display: 'flex', gap: '6px' }}>
-                        <button
-                          onClick={() => setDeletingId(null)}
-                          style={{
-                            background: 'none', border: '1px solid var(--border)',
-                            borderRadius: 'var(--radius-sm)',
-                            padding: '4px 8px', fontSize: '11px',
-                            color: 'var(--text-muted)', cursor: 'pointer',
-                          }}
-                        >
-                          Annuler
-                        </button>
-                        <button
-                          onClick={() => deleteReco(reco.id)}
-                          style={{
-                            background: '#ef4444', color: '#fff',
-                            border: 'none', borderRadius: 'var(--radius-sm)',
-                            padding: '4px 8px', fontSize: '11px', fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Supprimer
-                        </button>
+                        <button onClick={() => setDeletingId(null)} style={{
+                          background: 'none', border: `2px solid ${INK}`, borderRadius: '2px',
+                          padding: '3px 7px', fontSize: '10px', fontWeight: 700,
+                          color: INK, cursor: 'pointer',
+                        }}>Annuler</button>
+                        <button onClick={() => deleteReco(reco.id)} style={{
+                          background: RED, color: '#fff',
+                          border: `2px solid ${INK}`, borderRadius: '2px',
+                          boxShadow: `2px 2px 0 ${INK}`,
+                          padding: '3px 7px', fontSize: '10px', fontWeight: 700,
+                          cursor: 'pointer',
+                        }}>Suppr.</button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => setDeletingId(reco.id)}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          color: 'var(--text-muted)', display: 'flex', padding: '4px',
-                        }}
-                      >
-                        <Trash2 size={15} />
+                      <button onClick={() => setDeletingId(reco.id)} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: INK, display: 'flex', padding: '4px', opacity: 0.3,
+                      }}>
+                        <Trash2 size={14} />
                       </button>
                     )}
                   </div>
@@ -343,92 +373,44 @@ export default function Profil() {
         {/* ---- ONGLET CONTACTS ---- */}
         {tab === 'contacts' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
-            {/* Abonnements */}
-            <div>
-              <p style={{
-                fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)',
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px',
-              }}>
-                Abonnements · {following.length}
-              </p>
-              {following.length === 0 ? (
-                <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Tu ne suis personne encore</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {following.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => router.push(`/u/${p.username}`)}
-                      style={{
+            {[
+              { label: 'Abonnements', list: following, empty: 'Tu ne suis personne encore' },
+              { label: 'Abonnés', list: followers, empty: 'Personne ne te suit encore' },
+            ].map(({ label, list, empty }) => (
+              <div key={label}>
+                <p style={{ ...labelStyle, marginBottom: '10px' }}>{label} · {list.length}</p>
+                {list.length === 0 ? (
+                  <p style={{ fontSize: '13px', color: INK, opacity: 0.4, fontFamily: 'var(--font-title)', fontStyle: 'italic' }}>{empty}</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {list.map(p => (
+                      <button key={p.id} onClick={() => router.push(`/u/${p.username}`)} style={{
                         display: 'flex', alignItems: 'center', gap: '10px',
-                        background: 'var(--bg-card)', border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius-sm)', padding: '10px 14px',
-                        cursor: 'pointer', textAlign: 'left', width: '100%',
-                      }}
-                    >
-                      <div style={{
-                        width: '32px', height: '32px', borderRadius: '50%',
-                        background: 'var(--accent)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '13px', fontWeight: 700, color: '#fff', flexShrink: 0,
+                        background: '#fff', border: `2px solid ${INK}`,
+                        boxShadow: `3px 3px 0 ${INK}`, borderRadius: '2px',
+                        padding: '10px 14px', cursor: 'pointer', textAlign: 'left', width: '100%',
                       }}>
-                        {(p.full_name || p.username || '?')[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-                          {p.full_name || p.username}
-                        </p>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@{p.username}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Abonnés */}
-            <div>
-              <p style={{
-                fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)',
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px',
-              }}>
-                Abonnés · {followers.length}
-              </p>
-              {followers.length === 0 ? (
-                <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Personne ne te suit encore</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {followers.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => router.push(`/u/${p.username}`)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        background: 'var(--bg-card)', border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius-sm)', padding: '10px 14px',
-                        cursor: 'pointer', textAlign: 'left', width: '100%',
-                      }}
-                    >
-                      <div style={{
-                        width: '32px', height: '32px', borderRadius: '50%',
-                        background: 'var(--bg-secondary)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0,
-                      }}>
-                        {(p.full_name || p.username || '?')[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-title)' }}>
-                          {p.full_name || p.username}
-                        </p>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@{p.username}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                        <div style={{
+                          width: '32px', height: '32px', borderRadius: '50%',
+                          background: YELLOW, border: `2px solid ${INK}`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '13px', fontWeight: 700, color: INK, flexShrink: 0,
+                          fontFamily: 'var(--font-title)',
+                        }}>
+                          {(p.full_name || p.username || '?')[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <p style={{ fontSize: '14px', fontWeight: 700, color: INK, fontFamily: 'var(--font-title)' }}>
+                            {p.full_name || p.username}
+                          </p>
+                          <p style={{ fontSize: '11px', color: INK, opacity: 0.5 }}>@{p.username}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
@@ -437,210 +419,103 @@ export default function Profil() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
             {/* Nom affiché */}
-            <div style={{
-              background: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)', padding: '18px',
-            }}>
-              <p style={{
-                fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)',
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px',
-              }}>
-                Nom affiché
-              </p>
-              <input
-                type="text"
-                value={newDisplayName}
-                onChange={e => setNewDisplayName(e.target.value)}
-                placeholder="Ton prénom, surnom..."
-                style={{
-                  width: '100%', padding: '9px 12px', marginBottom: '10px',
-                  border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-                  fontSize: '14px', color: 'var(--text-primary)',
-                  background: 'var(--bg)', outline: 'none', boxSizing: 'border-box',
-                }}
-              />
+            <div style={cardStyle}>
+              <p style={labelStyle}>Nom affiché</p>
+              <input type="text" value={newDisplayName} onChange={e => setNewDisplayName(e.target.value)}
+                placeholder="Ton prénom, surnom..." style={{ ...inputStyle, marginBottom: '10px' }} />
               {msgDisplayName && (
-                <p style={{
-                  fontSize: '13px', marginBottom: '10px',
-                  color: msgDisplayName.includes('!') ? '#22c55e' : '#ef4444',
-                }}>
+                <p style={{ fontSize: '12px', marginBottom: '10px', color: msgDisplayName.includes('!') ? '#22c55e' : RED }}>
                   {msgDisplayName}
                 </p>
               )}
-              <button
-                onClick={saveDisplayName}
-                disabled={savingDisplayName}
-                style={{
-                  width: '100%', padding: '10px',
-                  background: 'var(--accent)', color: '#fff',
-                  border: 'none', borderRadius: 'var(--radius-full)',
-                  fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-                }}
-              >
+              <button onClick={saveDisplayName} disabled={savingDisplayName} style={btnPrimary}>
                 {savingDisplayName ? 'Mise à jour...' : 'Enregistrer'}
               </button>
             </div>
 
             {/* Pseudo (lecture seule) */}
-            <div style={{
-              background: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)', padding: '18px',
-            }}>
-              <p style={{
-                fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)',
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px',
-              }}>
-                Pseudo
-              </p>
-              <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>@{username}</p>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={cardStyle}>
+              <p style={labelStyle}>Pseudo</p>
+              <p style={{ fontSize: '15px', color: INK, fontWeight: 700 }}>@{username}</p>
+              <p style={{ fontSize: '11px', color: INK, opacity: 0.4, marginTop: '4px' }}>
                 Le pseudo ne peut pas être modifié.
               </p>
             </div>
 
-            {/* Changer le mot de passe */}
-            <div style={{
-              background: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)', padding: '18px',
-            }}>
-              <p style={{
-                fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)',
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px',
-              }}>
-                Mot de passe
-              </p>
+            {/* Mot de passe */}
+            <div style={cardStyle}>
+              <p style={labelStyle}>Mot de passe</p>
               <div style={{ position: 'relative', marginBottom: '8px' }}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  autoComplete="new-password"
+                <input type={showPassword ? 'text' : 'password'} value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)} autoComplete="new-password"
                   placeholder="Nouveau mot de passe"
-                  style={{
-                    width: '100%', padding: '9px 40px 9px 12px',
-                    border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-                    fontSize: '14px', color: 'var(--text-primary)',
-                    background: 'var(--bg)', outline: 'none', boxSizing: 'border-box',
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(v => !v)}
-                  style={{
-                    position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--text-muted)', display: 'flex', padding: 0,
-                  }}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  style={{ ...inputStyle, paddingRight: '40px' }} />
+                <button type="button" onClick={() => setShowPassword(v => !v)} style={{
+                  position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', color: INK, display: 'flex', padding: 0, opacity: 0.4,
+                }}>
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              <div style={{ position: 'relative', marginBottom: '10px' }}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  autoComplete="new-password"
-                  placeholder="Confirmer le mot de passe"
-                  style={{
-                    width: '100%', padding: '9px 40px 9px 12px',
-                    border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-                    fontSize: '14px', color: 'var(--text-primary)',
-                    background: 'var(--bg)', outline: 'none', boxSizing: 'border-box',
-                  }}
-                />
-              </div>
+              <input type={showPassword ? 'text' : 'password'} value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)} autoComplete="new-password"
+                placeholder="Confirmer le mot de passe"
+                style={{ ...inputStyle, marginBottom: '10px' }} />
               {msgPassword && (
-                <p style={{
-                  fontSize: '13px', marginBottom: '10px',
-                  color: msgPassword.includes('!') ? '#22c55e' : '#ef4444',
-                }}>
+                <p style={{ fontSize: '12px', marginBottom: '10px', color: msgPassword.includes('!') ? '#22c55e' : RED }}>
                   {msgPassword}
                 </p>
               )}
-              <button
-                onClick={savePassword}
-                disabled={savingPassword}
-                style={{
-                  width: '100%', padding: '10px',
-                  background: 'var(--accent)', color: '#fff',
-                  border: 'none', borderRadius: 'var(--radius-full)',
-                  fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-                }}
-              >
+              <button onClick={savePassword} disabled={savingPassword} style={btnPrimary}>
                 {savingPassword ? 'Mise à jour...' : 'Changer le mot de passe'}
               </button>
             </div>
 
-            {/* Email (lecture seule) */}
-            <div style={{
-              background: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)', padding: '18px',
-            }}>
-              <p style={{
-                fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)',
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px',
-              }}>
-                Email
-              </p>
-              <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{user?.email}</p>
+            {/* Email */}
+            <div style={cardStyle}>
+              <p style={labelStyle}>Email</p>
+              <p style={{ fontSize: '14px', color: INK, opacity: 0.6 }}>{user?.email}</p>
             </div>
 
-            {/* Supprimer le compte */}
-            <div style={{
-              background: 'var(--bg-card)', border: '1px solid #fca5a5',
-              borderRadius: 'var(--radius-md)', padding: '18px',
-            }}>
-              <p style={{
-                fontSize: '11px', fontWeight: 600, color: '#ef4444',
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px',
-              }}>
-                Zone de danger
-              </p>
+            {/* Zone danger */}
+            <div style={{ ...cardStyle, border: `2px solid ${RED}`, boxShadow: `4px 4px 0 ${RED}` }}>
+              <p style={{ ...labelStyle, color: RED, opacity: 1 }}>Zone de danger</p>
               {!deleteConfirm ? (
                 <>
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                    Supprimer définitivement ton compte et toutes tes recos.
+                  <p style={{ fontSize: '12px', color: INK, opacity: 0.5, marginBottom: '12px' }}>
+                    Supprime définitivement ton compte et toutes tes recos.
                   </p>
-                  <button
-                    onClick={() => setDeleteConfirm(true)}
-                    style={{
-                      width: '100%', padding: '10px',
-                      background: 'transparent', color: '#ef4444',
-                      border: '1px solid #ef4444', borderRadius: 'var(--radius-full)',
-                      fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-                    }}
-                  >
+                  <button onClick={() => setDeleteConfirm(true)} style={{
+                    width: '100%', padding: '10px',
+                    background: 'transparent', color: RED,
+                    border: `2px solid ${RED}`, borderRadius: '2px',
+                    fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                    letterSpacing: '0.1em', textTransform: 'uppercase',
+                  }}>
                     Supprimer mon compte
                   </button>
                 </>
               ) : (
                 <>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#ef4444', marginBottom: '8px' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: RED, marginBottom: '12px', fontFamily: 'var(--font-title)', fontStyle: 'italic' }}>
                     Es-tu sûr(e) ? Cette action est irréversible.
                   </p>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => setDeleteConfirm(false)}
-                      style={{
-                        flex: 1, padding: '10px',
-                        background: 'transparent', color: 'var(--text-secondary)',
-                        border: '1px solid var(--border)', borderRadius: 'var(--radius-full)',
-                        fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-                      }}
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      onClick={handleDeleteAccount}
-                      disabled={deletingAccount}
-                      style={{
-                        flex: 1, padding: '10px',
-                        background: '#ef4444', color: '#fff',
-                        border: 'none', borderRadius: 'var(--radius-full)',
-                        fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-                      }}
-                    >
+                    <button onClick={() => setDeleteConfirm(false)} style={{
+                      flex: 1, padding: '10px',
+                      background: 'transparent', color: INK,
+                      border: `2px solid ${INK}`, borderRadius: '2px',
+                      fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                      letterSpacing: '0.08em', textTransform: 'uppercase',
+                    }}>Annuler</button>
+                    <button onClick={handleDeleteAccount} disabled={deletingAccount} style={{
+                      flex: 1, padding: '10px',
+                      background: RED, color: '#fff',
+                      border: `2px solid ${INK}`, borderRadius: '2px',
+                      boxShadow: `3px 3px 0 ${INK}`,
+                      fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                      letterSpacing: '0.08em', textTransform: 'uppercase',
+                    }}>
                       {deletingAccount ? 'Suppression...' : 'Confirmer'}
                     </button>
                   </div>
@@ -653,6 +528,7 @@ export default function Profil() {
       </main>
 
       <NavBar current="/profil" router={router} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

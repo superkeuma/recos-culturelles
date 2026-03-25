@@ -6,24 +6,32 @@
    Modifier ici pour changer tout le design
    ============================================ */
 :root {
-  --bg: #ffffff;
-  --bg-secondary: #f7f7f7;
+  /* ---- Pop Art 60s palette ---- */
+  --bg: #FAFAF0;
+  --bg-secondary: #f0ece0;
   --bg-card: #ffffff;
 
-  --accent: #0f172a;
-  --accent-hover: #1e293b;
+  --accent: #0a0a0a;
+  --accent-hover: #222222;
 
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
+  --yellow: #FFD600;
+  --red: #FF2D55;
+  --blue: #0066FF;
 
-  --border: #e2e8f0;
-  --border-light: #f1f5f9;
+  --text-primary: #0a0a0a;
+  --text-secondary: #444444;
+  --text-muted: #888888;
 
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-full: 4px;
+  --border: #0a0a0a;
+  --border-light: rgba(10,10,10,0.12);
+
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-full: 2px;
+
+  --shadow: 4px 4px 0 #0a0a0a;
+  --shadow-sm: 2px 2px 0 #0a0a0a;
 
   --font: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
   --font-title: var(--font-playfair), Georgia, serif;

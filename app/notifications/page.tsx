@@ -63,80 +63,78 @@ export default function Notifications() {
     load()
   }, [])
 
+  const INK = '#0a0a0a'
+  const YELLOW = '#FFD600'
+
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Chargement...</p>
+    <div style={{ minHeight: '100vh', background: '#FAFAF0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: `3px solid ${INK}`, borderTopColor: YELLOW, animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '80px' }}>
+    <div style={{ minHeight: '100vh', background: '#FAFAF0', paddingBottom: '80px' }}>
 
       {/* ---- HEADER ---- */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 10,
-        background: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid var(--border-light)',
-        padding: '0 16px', height: '56px',
+        background: '#FAFAF0', borderBottom: `2px solid ${INK}`,
+        padding: '0 20px', height: '56px',
         display: 'flex', alignItems: 'center', gap: '12px',
         maxWidth: '520px', margin: '0 auto',
       }}>
-        <button
-          onClick={() => router.back()}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}
-        >
-          <ArrowLeft size={20} />
+        <button onClick={() => router.back()} style={{
+          background: 'none', border: `2px solid ${INK}`, borderRadius: '2px',
+          cursor: 'pointer', color: INK, padding: '5px', display: 'flex',
+        }}>
+          <ArrowLeft size={16} strokeWidth={2} />
         </button>
-        <span style={{ fontWeight: 700, fontSize: '17px', color: 'var(--accent)', flex: 1, fontFamily: 'var(--font-title)' }}>
+        <span style={{ fontWeight: 700, fontSize: '18px', color: INK, flex: 1, fontFamily: 'var(--font-title)', letterSpacing: '-0.5px' }}>
           notifications
         </span>
       </header>
 
       <main style={{ maxWidth: '520px', margin: '0 auto', padding: '16px' }}>
-
         {notifs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
-            <div style={{ marginBottom: '12px', opacity: 0.3, display: 'flex', justifyContent: 'center' }}>
-              <Bell size={36} strokeWidth={1.5} />
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: INK }}>
+            <div style={{ marginBottom: '12px', opacity: 0.15, display: 'flex', justifyContent: 'center' }}>
+              <Bell size={40} strokeWidth={1.5} />
             </div>
-            <p style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>Aucune notification</p>
-            <p style={{ fontSize: '13px', marginTop: '6px' }}>Tu seras notifié quand quelqu'un te suivra</p>
+            <p style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontStyle: 'italic', opacity: 0.4 }}>Aucune notification</p>
+            <p style={{ fontSize: '13px', marginTop: '6px', opacity: 0.4 }}>Tu seras notifié quand quelqu'un te suivra</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {notifs.map((notif, i) => {
               const isNew = seenAt ? new Date(notif.created_at) > seenAt : true
               const p = notif.profile
               return (
-                <button
-                  key={i}
-                  onClick={() => p?.username && router.push(`/u/${p.username}`)}
+                <button key={i} onClick={() => p?.username && router.push(`/u/${p.username}`)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '12px',
-                    background: isNew ? 'rgba(15,23,42,0.04)' : 'var(--bg-card)',
-                    border: `1px solid ${isNew ? 'var(--accent)' : 'var(--border)'}`,
-                    borderRadius: 'var(--radius-sm)', padding: '12px 14px',
+                    background: isNew ? YELLOW : '#fff',
+                    border: `2px solid ${INK}`,
+                    boxShadow: `3px 3px 0 ${INK}`, borderRadius: '2px',
+                    padding: '12px 14px',
                     cursor: p?.username ? 'pointer' : 'default', textAlign: 'left', width: '100%',
-                  }}
-                >
+                  }}>
                   <div style={{
                     width: '36px', height: '36px', borderRadius: '50%',
-                    background: 'var(--accent)',
+                    background: isNew ? INK : '#FAFAF0', border: `2px solid ${INK}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '14px', fontWeight: 700, color: '#fff', flexShrink: 0,
+                    fontSize: '14px', fontWeight: 700, color: isNew ? YELLOW : INK, flexShrink: 0,
+                    fontFamily: 'var(--font-title)',
                   }}>
                     {(p?.full_name || p?.username || '?')[0].toUpperCase()}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
-                      <strong>{p?.full_name || p?.username || 'Quelqu\'un'}</strong> a commencé à te suivre
+                    <p style={{ fontSize: '13px', color: INK, fontWeight: 600 }}>
+                      {p?.full_name || p?.username || "Quelqu'un"} a commencé à te suivre
                     </p>
-                    {p?.username && (
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@{p.username}</p>
-                    )}
+                    {p?.username && <p style={{ fontSize: '11px', color: INK, opacity: 0.5 }}>@{p.username}</p>}
                   </div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                  <span style={{ fontSize: '10px', color: INK, opacity: 0.4, fontWeight: 700, letterSpacing: '0.06em', flexShrink: 0 }}>
                     {formatDate(notif.created_at)}
                   </span>
                 </button>
@@ -147,6 +145,7 @@ export default function Notifications() {
       </main>
 
       <NavBar current="" router={router} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }
