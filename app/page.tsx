@@ -411,7 +411,7 @@ export default function Feed() {
       </div>
 
       {/* ---- DÉTAIL RECO (compact, au-dessus du disque) ---- */}
-      <div style={{ width: '100%', padding: '8px 16px 0', boxSizing: 'border-box', height: '72px', flexShrink: 0 }}>
+      <div style={{ width: '100%', padding: '8px 16px 0', boxSizing: 'border-box', height: '90px', flexShrink: 0 }}>
         {!activeReco ? (
           <div style={{
             height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -443,7 +443,7 @@ export default function Feed() {
                 src={activeReco.poster_url}
                 alt={activeReco.title}
                 style={{
-                  width: '36px', height: '48px', borderRadius: '2px',
+                  width: '48px', height: '64px', borderRadius: '2px',
                   objectFit: 'cover', flexShrink: 0,
                   border: `1.5px solid ${INK}`,
                 }}
@@ -484,7 +484,7 @@ export default function Feed() {
       {/* ---- DISQUE ---- */}
       <div style={{
         position: 'relative',
-        width: 'min(240px, calc(100vw - 60px))',
+        width: 'min(280px, calc(100vw - 60px))',
         aspectRatio: '1/1',
         margin: '10px auto 0', flexShrink: 0,
       }}>
