@@ -1,7 +1,7 @@
 'use client'
 // ============================================
-// PAGE D'ACCUEIL — TOURNE-DISQUE
-// Esthétique pop art 60s
+// PAGE D'ACCUEIL — ROUE DE LOTERIE
+// DA : fond crème, noir, accent jaune — pop art 60s
 // ============================================
 
 import { useEffect, useRef, useState } from 'react'
@@ -9,238 +9,71 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import NavBar from '@/components/NavBar'
 
-// ---- Palette Pop Art ----
-const BG       = '#FAFAF0'   // crème
-const INK      = '#0a0a0a'   // noir profond
-const YELLOW   = '#FFD600'   // jaune pop
-const RED      = '#FF2D55'   // rouge pop
-const DISK_BG  = '#111111'   // vinyle
+// ── Palette pop art 60s ──
+const BG     = '#FAFAF0'
+const INK    = '#0a0a0a'
+const YELLOW = '#FFD600'
+
+// ── Couleurs par type ──
+const TYPE_META: Record<string, { bg: string; accent: string; emoji: string }> = {
+  film:      { bg: '#2d1810', accent: '#e8845a', emoji: '🎬' },
+  musique:   { bg: '#0f1a2d', accent: '#7b9ee8', emoji: '🎵' },
+  livre:     { bg: '#0f2316', accent: '#6eba7e', emoji: '📚' },
+  podcast:   { bg: '#2d2310', accent: '#e8c45a', emoji: '🎙️' },
+  youtube:   { bg: '#2d0f0f', accent: '#e87b7b', emoji: '▶️' },
+  spectacle: { bg: '#1e1a2d', accent: '#b07be8', emoji: '🎭' },
+  série:     { bg: '#1a2010', accent: '#a0cc7b', emoji: '📺' },
+  autre:     { bg: '#1a1a1a', accent: '#888888', emoji: '✨' },
+}
+
+const FILTERS = ['tout', 'film', 'musique', 'livre', 'podcast', 'youtube', 'série']
 
 const CONTACT_COLORS = [
-  '#FF2D55', '#FFD600', '#0066FF', '#FF6B00',
-  '#00CC66', '#CC00FF', '#00CCFF', '#FF3300',
+  '#FF2D55','#FFD600','#0066FF','#FF6B00',
+  '#00CC66','#CC00FF','#00CCFF','#FF3300',
 ]
 
-const FILTERS = [
-  { key: 'tout',    label: 'TOUT'    },
-  { key: 'film',    label: 'FILM'    },
-  { key: 'musique', label: 'MUSIQUE' },
-  { key: 'livre',   label: 'LIVRE'   },
-  { key: 'podcast', label: 'PODCAST' },
-  { key: 'youtube', label: 'YOUTUBE' },
-  { key: 'autre',   label: 'AUTRE'   },
-]
-
-// ---- Types ----
+// ── Types ──
 interface Reco {
-  id: string
-  user_id: string
-  type: string
-  title: string
-  creator: string | null
-  comment: string | null
-  poster_url: string | null
-  url: string | null
-  color: string
-  by: string
-  username: string
+  id: string; user_id: string; type: string; title: string
+  creator: string | null; comment: string | null
+  poster_url: string | null; url: string | null
+  color: string; by: string; username: string
 }
 interface Contact {
-  user_id: string
-  name: string
-  username: string
-  color: string
+  user_id: string; name: string; username: string; color: string
 }
 
-// ---- Fonctions de dessin ----
-const W = 300, H = 300, CX = 150, CY = 150
+// ── Wheel ──
+const WHEEL_R  = 130   // rayon px
+const MIN_SEGS = 8     // nombre minimum de segments (répète si besoin)
 
-function computeRingRadius(i: number, total: number): number {
-  const minR = 48, maxR = 126
-  if (total === 1) return (minR + maxR) / 2
-  return minR + (maxR - minR) * (i / (total - 1))
+function toRad(d: number) { return d * Math.PI / 180 }
+
+function segPath(cx: number, cy: number, r: number, a1: number, a2: number): string {
+  const x1 = cx + r * Math.cos(toRad(a1))
+  const y1 = cy + r * Math.sin(toRad(a1))
+  const x2 = cx + r * Math.cos(toRad(a2))
+  const y2 = cy + r * Math.sin(toRad(a2))
+  const large = (a2 - a1 > 180) ? 1 : 0
+  return `M ${cx},${cy} L ${x1.toFixed(2)},${y1.toFixed(2)} A ${r},${r} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z`
 }
 
-function drawDisk(
-  canvas: HTMLCanvasElement,
-  recos: Reco[],
-  activeIdx: number,
-  rotation: number
-) {
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-  ctx.clearRect(0, 0, W, H)
-
-  // Fond du disque — noir vinyle
-  ctx.beginPath()
-  ctx.arc(CX, CY, 146, 0, Math.PI * 2)
-  ctx.fillStyle = DISK_BG
-  ctx.fill()
-
-  // Bordure épaisse noire pop art
-  ctx.beginPath()
-  ctx.arc(CX, CY, 146, 0, Math.PI * 2)
-  ctx.strokeStyle = INK
-  ctx.lineWidth = 3
-  ctx.stroke()
-
-  // Sillons discrets
-  for (let r = 30; r < 140; r += 6) {
-    ctx.beginPath()
-    ctx.arc(CX, CY, r, 0, Math.PI * 2)
-    ctx.strokeStyle = r % 18 === 0 ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.03)'
-    ctx.lineWidth = 0.5
-    ctx.stroke()
-  }
-
-  // Rayon de lecture — zone éclairée vers l'aiguille (angle 0 = droite)
-  const halfAngle = 0.14
-  const rayGrad = ctx.createLinearGradient(CX, CY, CX + 140, CY)
-  rayGrad.addColorStop(0, 'rgba(255,255,255,0.22)')
-  rayGrad.addColorStop(0.6, 'rgba(255,255,255,0.08)')
-  rayGrad.addColorStop(1, 'rgba(255,255,255,0)')
-  ctx.beginPath()
-  ctx.moveTo(CX, CY)
-  ctx.arc(CX, CY, 140, -halfAngle, halfAngle)
-  ctx.closePath()
-  ctx.fillStyle = rayGrad
-  ctx.fill()
-
-  if (recos.length === 0) {
-    ctx.font = '500 11px Inter, sans-serif'
-    ctx.fillStyle = 'rgba(255,255,255,0.2)'
-    ctx.textAlign = 'center'
-    ctx.fillText('aucune reco', CX, CY + 4)
-  } else {
-    recos.forEach((reco, i) => {
-      const baseAngle = (i / recos.length) * Math.PI * 2
-      const a = baseAngle + rotation
-      const radius = computeRingRadius(i, recos.length)
-      const x = CX + Math.cos(a) * radius
-      const y = CY + Math.sin(a) * radius
-      const isActive = i === activeIdx
-
-      // Arc coloré sur le sillon
-      const arcSpan = Math.min(0.3, (Math.PI * 2 / recos.length) * 0.7)
-      ctx.beginPath()
-      ctx.arc(CX, CY, radius, a - arcSpan, a + arcSpan)
-      ctx.strokeStyle = reco.color
-      ctx.lineWidth = isActive ? 3 : 1.5
-      ctx.globalAlpha = isActive ? 1 : 0.5
-      ctx.stroke()
-      ctx.globalAlpha = 1
-
-      // Point — avec contour noir pop art
-      const ptR = isActive ? 8 : 5
-      ctx.beginPath()
-      ctx.arc(x, y, ptR, 0, Math.PI * 2)
-      ctx.fillStyle = reco.color
-      ctx.globalAlpha = isActive ? 1 : 0.75
-      ctx.fill()
-      ctx.globalAlpha = 1
-      // Contour noir
-      ctx.beginPath()
-      ctx.arc(x, y, ptR, 0, Math.PI * 2)
-      ctx.strokeStyle = isActive ? INK : 'rgba(0,0,0,0.4)'
-      ctx.lineWidth = isActive ? 1.5 : 0.8
-      ctx.stroke()
-
-      // Halo actif
-      if (isActive) {
-        // Trait du centre vers le point
-        ctx.beginPath()
-        ctx.moveTo(CX, CY)
-        ctx.lineTo(x, y)
-        ctx.strokeStyle = reco.color
-        ctx.lineWidth = 1
-        ctx.globalAlpha = 0.35
-        ctx.stroke()
-        ctx.globalAlpha = 1
-
-        // Halo coloré
-        ctx.beginPath()
-        ctx.arc(x, y, 15, 0, Math.PI * 2)
-        ctx.fillStyle = reco.color
-        ctx.globalAlpha = 0.25
-        ctx.fill()
-        ctx.globalAlpha = 1
-
-        // Initiale
-        ctx.font = '700 9px Inter, sans-serif'
-        ctx.fillStyle = INK
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(reco.by[0].toUpperCase(), x, y)
-        ctx.textBaseline = 'alphabetic'
-      }
-    })
-  }
-
-  // Centre — étiquette jaune pop art
-  ctx.beginPath()
-  ctx.arc(CX, CY, 24, 0, Math.PI * 2)
-  ctx.fillStyle = YELLOW
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(CX, CY, 24, 0, Math.PI * 2)
-  ctx.strokeStyle = INK
-  ctx.lineWidth = 2
-  ctx.stroke()
-
-  // Trou central
-  ctx.beginPath()
-  ctx.arc(CX, CY, 5, 0, Math.PI * 2)
-  ctx.fillStyle = INK
-  ctx.fill()
-
-  // Aiguille rouge
-  const needleX = CX + 146
-  ctx.beginPath()
-  ctx.moveTo(needleX + 10, CY - 18)
-  ctx.lineTo(needleX + 10, CY + 18)
-  ctx.strokeStyle = RED
-  ctx.lineWidth = 2.5
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.arc(needleX + 10, CY, 4, 0, Math.PI * 2)
-  ctx.fillStyle = RED
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(needleX + 10, CY, 4, 0, Math.PI * 2)
-  ctx.strokeStyle = INK
-  ctx.lineWidth = 1.5
-  ctx.stroke()
-}
-
-function findClosest(recos: Reco[], rotation: number): number {
-  if (recos.length === 0) return -1
-  let best = -1, bestDist = Infinity
-  recos.forEach((_, i) => {
-    const baseAngle = (i / recos.length) * Math.PI * 2
-    let a = ((baseAngle + rotation) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2)
-    let dist = Math.abs(a)
-    if (dist > Math.PI) dist = Math.PI * 2 - dist
-    if (dist < bestDist) { bestDist = dist; best = i }
-  })
-  return bestDist < 0.45 ? best : -1
-}
-
-// ---- Composant ----
+// ── Composant principal ──
 export default function Feed() {
   const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [allRecos, setAllRecos] = useState<Reco[]>([])
-  const [contacts, setContacts] = useState<Contact[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [allRecos,     setAllRecos]     = useState<Reco[]>([])
+  const [contacts,     setContacts]     = useState<Contact[]>([])
   const [activeFilter, setActiveFilter] = useState('tout')
-  const [activeReco, setActiveReco] = useState<Reco | null>(null)
+  const [spinAngle,    setSpinAngle]    = useState(0)
+  const [isDragging,   setIsDragging]   = useState(false)
 
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const rotationRef = useRef(0)
-  const draggingRef = useRef(false)
-  const lastAngleRef = useRef(0)
-  const activeIdxRef = useRef(-1)
-  const recosRef = useRef<Reco[]>([])
+  const pointerDown   = useRef(false)
+  const dragStartX    = useRef(0)
+  const dragStartSpin = useRef(0)
 
+  // ── Chargement Supabase ──
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -251,316 +84,401 @@ export default function Feed() {
 
       if (!followsData || followsData.length === 0) { setLoading(false); return }
 
-      const followingIds = followsData.map((f: any) => f.following_id)
+      const ids = followsData.map((f: any) => f.following_id)
       const [profilesRes, recosRes] = await Promise.all([
-        supabase.from('profiles').select('id, username, full_name').in('id', followingIds),
+        supabase.from('profiles').select('id, username, full_name').in('id', ids),
         supabase.from('recommendations')
           .select('id, user_id, type, title, creator, comment, poster_url, url')
-          .in('user_id', followingIds)
+          .in('user_id', ids)
           .order('created_at', { ascending: false })
-          .limit(60),
+          .limit(80),
       ])
 
       const colorMap: Record<string, string> = {}
-      const contactsList: Contact[] = []
+      const cl: Contact[] = []
       profilesRes.data?.forEach((p: any, i: number) => {
         const color = CONTACT_COLORS[i % CONTACT_COLORS.length]
         colorMap[p.id] = color
-        contactsList.push({ user_id: p.id, name: p.full_name || p.username, username: p.username, color })
+        cl.push({ user_id: p.id, name: p.full_name || p.username, username: p.username, color })
       })
-      setContacts(contactsList)
+      setContacts(cl)
 
       if (recosRes.data) {
-        const recos: Reco[] = recosRes.data.map((r: any) => ({
+        setAllRecos(recosRes.data.map((r: any) => ({
           ...r,
           color: colorMap[r.user_id] || '#888',
-          by: contactsList.find(c => c.user_id === r.user_id)?.name || '?',
-          username: contactsList.find(c => c.user_id === r.user_id)?.username || '',
-        }))
-        setAllRecos(recos)
+          by:    cl.find(c => c.user_id === r.user_id)?.name || '?',
+          username: cl.find(c => c.user_id === r.user_id)?.username || '',
+        })))
       }
       setLoading(false)
     }
     load()
   }, [])
 
-  const filteredRecos = activeFilter === 'tout'
+  // ── Filtres ──
+  const recos = activeFilter === 'tout'
     ? allRecos
     : allRecos.filter(r => r.type === activeFilter)
 
+  useEffect(() => { setSpinAngle(0) }, [activeFilter, allRecos])
+
+  // ── Segments de la roue (répète si < MIN_SEGS) ──
+  const segments = recos.length === 0 ? [] :
+    Array.from({ length: Math.max(MIN_SEGS, recos.length) }, (_, i) => recos[i % recos.length])
+
+  const N        = segments.length
+  const segAngle = N > 0 ? 360 / N : 360
+
+  // ── Segment actif (celui en haut = 270° dans SVG) ──
+  const topAngle      = (((270 - spinAngle) % 360) + 360) % 360
+  const activeSegIdx  = N > 0 ? Math.floor(topAngle / segAngle) % N : 0
+  const activeReco    = recos.length > 0 ? segments[activeSegIdx] : null
+  const typeMeta      = TYPE_META[activeReco?.type ?? ''] ?? TYPE_META.autre
+
+  // ── Snap au segment i ──
+  const snapTo = (i: number) => {
+    const base = 270 - i * segAngle - segAngle / 2
+    const revs = Math.round((spinAngle - base) / 360)
+    setSpinAngle(base + revs * 360)
+  }
+
+  // ── Clavier ──
   useEffect(() => {
-    recosRef.current = filteredRecos
-    activeIdxRef.current = -1
-    rotationRef.current = 0
-    setActiveReco(null)
-    if (canvasRef.current) drawDisk(canvasRef.current, filteredRecos, -1, 0)
-  }, [activeFilter, allRecos])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const getPos = (e: MouseEvent | TouchEvent) => {
-      const rect = canvas.getBoundingClientRect()
-      const scaleX = W / rect.width, scaleY = H / rect.height
-      if ('touches' in e && e.touches.length > 0)
-        return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY }
-      return { x: ((e as MouseEvent).clientX - rect.left) * scaleX, y: ((e as MouseEvent).clientY - rect.top) * scaleY }
+    if (N === 0) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft')  snapTo((activeSegIdx - 1 + N) % N)
+      if (e.key === 'ArrowRight') snapTo((activeSegIdx + 1) % N)
     }
-    const getAngle = (x: number, y: number) => Math.atan2(y - CY, x - CX)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [activeSegIdx, N, segAngle, spinAngle])
 
-    const onDown = (e: MouseEvent | TouchEvent) => {
-      draggingRef.current = true
-      const p = getPos(e)
-      lastAngleRef.current = getAngle(p.x, p.y)
-    }
-    const onMove = (e: MouseEvent | TouchEvent) => {
-      if (!draggingRef.current) return
-      const p = getPos(e)
-      const angle = getAngle(p.x, p.y)
-      rotationRef.current += angle - lastAngleRef.current
-      lastAngleRef.current = angle
-      const recos = recosRef.current
-      const idx = findClosest(recos, rotationRef.current)
-      if (idx !== activeIdxRef.current) {
-        activeIdxRef.current = idx
-        setActiveReco(idx !== -1 ? recos[idx] : null)
-      }
-      drawDisk(canvas, recos, activeIdxRef.current, rotationRef.current)
-      if ('touches' in e) e.preventDefault()
-    }
-    const onUp = () => { draggingRef.current = false }
+  // ── Drag ──
+  const onPointerDown = (e: React.PointerEvent) => {
+    pointerDown.current  = true
+    dragStartX.current   = e.clientX
+    dragStartSpin.current = spinAngle
+    setIsDragging(true)
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  }
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!pointerDown.current) return
+    const dx = e.clientX - dragStartX.current
+    setSpinAngle(dragStartSpin.current + dx * 0.55)
+  }
+  const onPointerUp = () => {
+    if (!pointerDown.current) return
+    pointerDown.current = false
+    setIsDragging(false)
+    snapTo(activeSegIdx)
+  }
 
-    canvas.addEventListener('mousedown', onDown as EventListener)
-    canvas.addEventListener('touchstart', onDown as EventListener, { passive: false })
-    canvas.addEventListener('mousemove', onMove as EventListener)
-    canvas.addEventListener('touchmove', onMove as EventListener, { passive: false })
-    canvas.addEventListener('mouseup', onUp)
-    canvas.addEventListener('touchend', onUp)
-    window.addEventListener('mouseup', onUp)
-    return () => {
-      canvas.removeEventListener('mousedown', onDown as EventListener)
-      canvas.removeEventListener('touchstart', onDown as EventListener)
-      canvas.removeEventListener('mousemove', onMove as EventListener)
-      canvas.removeEventListener('touchmove', onMove as EventListener)
-      canvas.removeEventListener('mouseup', onUp)
-      canvas.removeEventListener('touchend', onUp)
-      window.removeEventListener('mouseup', onUp)
-    }
-  }, [])
-
+  // ── Heure ──
   const now = new Date()
-  const timeStr = `${String(now.getHours()).padStart(2, '0')}h${String(now.getMinutes()).padStart(2, '0')}`
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}h${String(now.getMinutes()).padStart(2,'0')}`
+
+  const CX = WHEEL_R
+  const CY = WHEEL_R
+  const D  = WHEEL_R * 2
 
   return (
     <div style={{
       background: BG, minHeight: '100vh',
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      paddingBottom: '80px', fontFamily: 'var(--font)',
-      maxWidth: '520px', margin: '0 auto',
+      display: 'flex', flexDirection: 'column',
+      paddingBottom: 80, fontFamily: 'Inter, sans-serif',
+      maxWidth: 520, margin: '0 auto',
     }}>
 
-      {/* ---- HEADER ---- */}
+      {/* ── Header ── */}
       <div style={{
-        width: '100%', padding: '12px 20px 10px',
+        padding: '12px 20px 10px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         borderBottom: `2px solid ${INK}`,
       }}>
-        <span style={{
-          fontFamily: 'var(--font-title)', color: INK,
-          fontSize: '22px', fontWeight: 700, letterSpacing: '-0.5px',
-        }}>
-          reco
-        </span>
-        <span style={{
-          fontSize: '10px', color: INK, letterSpacing: '0.15em',
-          fontWeight: 500, opacity: 0.4,
-        }}>
-          {timeStr}
-        </span>
+        <span style={{ fontSize: 22, fontWeight: 800, color: INK, letterSpacing: '-0.5px' }}>reco</span>
+        <span style={{ fontSize: 10, color: INK, opacity: 0.4, letterSpacing: '0.15em', fontWeight: 600 }}>{timeStr}</span>
       </div>
 
-      {/* ---- FILTRES ---- */}
+      {/* ── Filtres ── */}
       <div style={{
-        display: 'flex', gap: '6px', padding: '8px 16px',
-        width: '100%', boxSizing: 'border-box',
-        overflowX: 'auto', scrollbarWidth: 'none',
-        borderBottom: `2px solid ${INK}`,
+        display: 'flex', gap: 6, padding: '8px 16px',
+        overflowX: 'auto', borderBottom: `2px solid ${INK}`,
+        scrollbarWidth: 'none',
       }}>
         {FILTERS.map(f => (
-          <button
-            key={f.key}
-            onClick={() => setActiveFilter(f.key)}
-            style={{
-              padding: '5px 12px',
-              borderRadius: '2px',
-              border: `2px solid ${INK}`,
-              background: activeFilter === f.key ? YELLOW : 'transparent',
-              color: INK,
-              fontSize: '10px', fontWeight: 700,
-              letterSpacing: '0.1em', cursor: 'pointer', whiteSpace: 'nowrap',
-              fontFamily: 'var(--font)',
-              boxShadow: activeFilter === f.key ? `3px 3px 0 ${INK}` : 'none',
-              transform: activeFilter === f.key ? 'translate(-1px, -1px)' : 'none',
-              transition: 'all 0.1s',
-            }}
-          >
-            {f.label}
-          </button>
+          <button key={f} onClick={() => setActiveFilter(f)} style={{
+            padding: '5px 12px', borderRadius: 2,
+            border: `2px solid ${INK}`,
+            background: activeFilter === f ? YELLOW : 'transparent',
+            color: INK, fontSize: 10, fontWeight: 700,
+            letterSpacing: '0.1em', cursor: 'pointer', whiteSpace: 'nowrap',
+            textTransform: 'uppercase',
+            boxShadow: activeFilter === f ? `3px 3px 0 ${INK}` : 'none',
+            transform: activeFilter === f ? 'translate(-1px,-1px)' : 'none',
+            transition: 'all 0.1s',
+          }}>{f}</button>
         ))}
       </div>
 
-      {/* ---- DÉTAIL RECO (compact, au-dessus du disque) ---- */}
-      <div style={{ width: '100%', padding: '8px 16px 0', boxSizing: 'border-box', height: '90px', flexShrink: 0 }}>
-        {!activeReco ? (
-          <div style={{
-            height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: `2px solid transparent`,
-          }}>
-            <p style={{
-              fontFamily: 'var(--font-title)', fontSize: '14px',
-              color: INK, fontStyle: 'italic', textAlign: 'center',
-              opacity: 0.2, margin: 0,
-            }}>
-              {allRecos.length === 0 && !loading
-                ? 'Suis des contacts pour découvrir leurs recos'
-                : 'Tourne pour découvrir les recos de tes contacts'}
-            </p>
-          </div>
-        ) : (
-          <div style={{
-            height: '100%',
-            background: '#fff',
-            border: `2px solid ${INK}`,
-            boxShadow: `3px 3px 0 ${INK}`,
-            borderRadius: '2px',
-            padding: '8px 10px',
-            display: 'flex', alignItems: 'center', gap: '10px',
-            boxSizing: 'border-box',
-          }}>
-            {activeReco.poster_url && (
-              <img
-                src={activeReco.poster_url}
-                alt={activeReco.title}
-                style={{
-                  width: '48px', height: '64px', borderRadius: '2px',
-                  objectFit: 'cover', flexShrink: 0,
-                  border: `1.5px solid ${INK}`,
-                }}
-              />
-            )}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{
-                fontSize: '8px', letterSpacing: '0.16em', color: INK,
-                textTransform: 'uppercase', marginBottom: '2px',
-                fontWeight: 700, opacity: 0.4,
-              }}>
-                {activeReco.type}
+      {/* ── Infos reco active ── */}
+      <div style={{ padding: '12px 16px 0', width: '100%', boxSizing: 'border-box' }}>
+        <div style={{
+          background: '#fff',
+          border: `2px solid ${INK}`,
+          boxShadow: `4px 4px 0 ${INK}`,
+          borderRadius: 2,
+          padding: '12px 14px',
+          height: 100,
+          overflow: 'hidden',
+          boxSizing: 'border-box',
+        }}>
+          {activeReco ? (
+            <>
+              {/* Badge type */}
+              <span style={{
+                fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase',
+                fontWeight: 700, color: typeMeta.accent, background: typeMeta.bg,
+                padding: '2px 8px', borderRadius: 1,
+                display: 'inline-block', marginBottom: 6,
+              }}>{activeReco.type}</span>
+
+              {/* Titre + lien */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                <h2 style={{
+                  fontSize: 17, fontWeight: 700, color: INK,
+                  margin: 0, lineHeight: 1.2,
+                  fontFamily: 'var(--font-title, Georgia, serif)',
+                  overflow: 'hidden', display: '-webkit-box',
+                  WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+                }}>{activeReco.title}</h2>
+                {activeReco.url && (
+                  <a
+                    href={activeReco.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      flexShrink: 0,
+                      width: 26, height: 26,
+                      border: `2px solid ${INK}`,
+                      background: YELLOW,
+                      boxShadow: `2px 2px 0 ${INK}`,
+                      borderRadius: 2,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, textDecoration: 'none', color: INK,
+                    }}
+                  >↗</a>
+                )}
+              </div>
+
+              {/* Contact */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: activeReco.color, border: `1.5px solid ${INK}`, flexShrink: 0 }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: INK, opacity: 0.55, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  {activeReco.by}{activeReco.creator ? ` — ${activeReco.creator}` : ''}
+                </span>
+              </div>
+            </>
+          ) : (
+            !loading && (
+              <p style={{ fontSize: 13, color: INK, opacity: 0.3, fontStyle: 'italic', margin: 0 }}>
+                {allRecos.length === 0 ? 'Suis des contacts pour voir leurs recos' : 'Aucune reco dans cette catégorie'}
               </p>
-              <p style={{
-                fontFamily: 'var(--font-title)', fontSize: '15px', fontWeight: 700,
-                color: INK, lineHeight: 1.1, marginBottom: '3px',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>
-                {activeReco.title}
-              </p>
-              {activeReco.creator && (
-                <p style={{ fontSize: '11px', color: INK, opacity: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeReco.creator}</p>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-              <div style={{
-                width: '8px', height: '8px', borderRadius: '50%',
-                background: activeReco.color, border: `1.5px solid ${INK}`,
-              }} />
-              <span style={{ fontSize: '10px', fontWeight: 700, color: INK, letterSpacing: '0.06em' }}>
-                {activeReco.by}
-              </span>
-            </div>
-          </div>
-        )}
+            )
+          )}
+        </div>
       </div>
 
-      {/* ---- DISQUE ---- */}
-      <div style={{
-        position: 'relative',
-        width: 'min(280px, calc(100vw - 60px))',
-        aspectRatio: '1/1',
-        margin: '10px auto 0', flexShrink: 0,
-      }}>
-        <canvas
-          ref={canvasRef}
-          width={300}
-          height={300}
+      {/* ── Roue ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 0 8px', gap: 0 }}>
+
+        {/* Flèche gauche */}
+        <button
+          onClick={() => N > 0 && snapTo((activeSegIdx - 1 + N) % N)}
           style={{
-            display: 'block', cursor: 'grab', touchAction: 'none',
-            opacity: loading ? 0 : 1, transition: 'opacity 0.4s',
-            width: '100%', height: '100%',
+            width: 40, height: 40, flexShrink: 0,
+            border: `2px solid ${INK}`, borderRadius: 2,
+            background: '#fff', boxShadow: `3px 3px 0 ${INK}`,
+            cursor: 'pointer', fontSize: 18, fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginRight: 16,
+            transition: 'transform 0.1s, box-shadow 0.1s',
           }}
-        />
-        {loading && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{
-              width: '40px', height: '40px', borderRadius: '50%',
-              border: `3px solid ${INK}`, borderTopColor: YELLOW,
-              animation: 'spin 0.8s linear infinite',
-            }} />
+          onMouseDown={e => { e.currentTarget.style.transform = 'translate(2px,2px)'; e.currentTarget.style.boxShadow = 'none' }}
+          onMouseUp={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = `3px 3px 0 ${INK}` }}
+        >←</button>
+
+        <div style={{ position: 'relative', width: D, height: D }}>
+
+          {/* ── Pointeur (flèche fixe en haut) ── */}
+          <svg
+            width={24} height={28}
+            style={{
+              position: 'absolute',
+              top: -22,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 10,
+              filter: `drop-shadow(0 2px 0 rgba(0,0,0,0.25))`,
+            }}
+          >
+            <polygon points="12,26 2,2 22,2" fill={YELLOW} stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+          </svg>
+
+          {/* ── Zone de drag ── */}
+          <div
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            style={{
+              width: D, height: D,
+              cursor: isDragging ? 'grabbing' : 'grab',
+              touchAction: 'none', userSelect: 'none',
+              position: 'relative',
+            }}
+          >
+
+            {/* Loading */}
+            {loading && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20,
+              }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', border: `3px solid ${INK}`, borderTopColor: YELLOW, animation: 'spin 0.8s linear infinite' }} />
+              </div>
+            )}
+
+            {/* SVG roue */}
+            {N > 0 && (
+              <svg
+                width={D} height={D}
+                style={{
+                  transform: `rotate(${spinAngle}deg)`,
+                  transition: isDragging ? 'none' : 'transform 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                  display: 'block',
+                }}
+              >
+                {/* Segments */}
+                {segments.map((seg, i) => {
+                  const a1   = i * segAngle
+                  const a2   = (i + 1) * segAngle
+                  const midA = (a1 + a2) / 2
+                  const isActive = i === activeSegIdx
+                  const meta = TYPE_META[seg.type] ?? TYPE_META.autre
+
+                  // Alternance sombre / très sombre, jaune si actif
+                  const fill = isActive
+                    ? YELLOW
+                    : (i % 2 === 0 ? meta.bg : '#111111')
+
+                  // Position de l'emoji dans le segment
+                  const eR = WHEEL_R * 0.60
+                  const ex = CX + eR * Math.cos(toRad(midA))
+                  const ey = CY + eR * Math.sin(toRad(midA))
+
+                  const emojiSize = N <= 8 ? 22 : N <= 12 ? 17 : 12
+
+                  return (
+                    <g key={`${seg.id}-${i}`}>
+                      <path
+                        d={segPath(CX, CY, WHEEL_R, a1, a2)}
+                        fill={fill}
+                        stroke={INK}
+                        strokeWidth={isActive ? 2.5 : 1.5}
+                      />
+                      <text
+                        x={ex} y={ey}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize={emojiSize}
+                        style={{ userSelect: 'none', pointerEvents: 'none' }}
+                      >
+                        {meta.emoji}
+                      </text>
+                    </g>
+                  )
+                })}
+
+                {/* Anneau extérieur */}
+                <circle cx={CX} cy={CY} r={WHEEL_R - 1} fill="none" stroke={INK} strokeWidth={3} />
+
+                {/* Moyeu central */}
+                <circle cx={CX} cy={CY} r={22} fill={BG}  stroke={INK} strokeWidth={2.5} />
+                <circle cx={CX} cy={CY} r={7}  fill={INK} />
+              </svg>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Flèche droite */}
+        <button
+          onClick={() => N > 0 && snapTo((activeSegIdx + 1) % N)}
+          style={{
+            width: 40, height: 40, flexShrink: 0,
+            border: `2px solid ${INK}`, borderRadius: 2,
+            background: '#fff', boxShadow: `3px 3px 0 ${INK}`,
+            cursor: 'pointer', fontSize: 18, fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginLeft: 16,
+            transition: 'transform 0.1s, box-shadow 0.1s',
+          }}
+          onMouseDown={e => { e.currentTarget.style.transform = 'translate(2px,2px)'; e.currentTarget.style.boxShadow = 'none' }}
+          onMouseUp={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = `3px 3px 0 ${INK}` }}
+        >→</button>
+
       </div>
 
-      <p style={{
-        fontSize: '9px', color: INK, letterSpacing: '0.2em',
-        fontWeight: 700, textAlign: 'center', padding: '6px 0 8px',
-        opacity: 0.25,
-      }}>
-        ↺ TOURNE LE DISQUE
-      </p>
-
-      {/* ---- CONTACTS ---- */}
+      {/* ── Contacts ── */}
       {contacts.length > 0 && (
         <div style={{
-          display: 'flex', gap: '10px', padding: '6px 16px 10px',
-          width: '100%', boxSizing: 'border-box',
-          overflowX: 'auto', scrollbarWidth: 'none', justifyContent: 'center',
-          borderBottom: `2px solid ${INK}`,
+          display: 'flex', gap: 14, padding: '12px 16px 6px',
+          overflowX: 'auto', scrollbarWidth: 'none',
+          justifyContent: 'center',
+          borderTop: `2px solid ${INK}`,
+          marginTop: 12,
         }}>
-          {contacts.map(contact => (
-            <div
-              key={contact.user_id}
-              onClick={() => router.push(`/u/${contact.username}`)}
+          {contacts.map(c => (
+            <div key={c.user_id}
+              onClick={() => router.push(`/u/${c.username}`)}
               style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                 cursor: 'pointer', flexShrink: 0,
-                opacity: !activeReco || activeReco.user_id === contact.user_id ? 1 : 0.2,
+                opacity: !activeReco || activeReco.user_id === c.user_id ? 1 : 0.3,
                 transition: 'opacity 0.2s',
               }}
             >
               <div style={{
-                width: '34px', height: '34px', borderRadius: '50%',
-                background: contact.color,
-                border: `2px solid ${INK}`,
+                width: 34, height: 34, borderRadius: '50%',
+                background: c.color, border: `2px solid ${INK}`,
                 boxShadow: `2px 2px 0 ${INK}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '13px', fontWeight: 700, color: '#fff',
-                textShadow: `1px 1px 0 ${INK}`,
-              }}>
-                {contact.name[0].toUpperCase()}
-              </div>
-              <span style={{ fontSize: '8px', color: INK, letterSpacing: '0.08em', fontWeight: 500, opacity: 0.5 }}>
-                {contact.username}
+                fontSize: 13, fontWeight: 700, color: '#fff',
+              }}>{c.name[0].toUpperCase()}</div>
+              <span style={{ fontSize: 9, fontWeight: 700, color: INK, letterSpacing: '0.06em', opacity: 0.6 }}>
+                {c.username}
               </span>
             </div>
           ))}
         </div>
       )}
 
-      <NavBar current="/" router={router} />
+      {/* ── Commentaire ── */}
+      {activeReco?.comment && (
+        <div style={{ padding: '10px 16px 0', width: '100%', boxSizing: 'border-box' }}>
+          <p style={{
+            fontSize: 13, color: INK, fontStyle: 'italic',
+            opacity: 0.72, lineHeight: 1.65, margin: 0,
+            borderLeft: `3px solid ${activeReco.color}`,
+            paddingLeft: 12,
+          }}>
+            "{activeReco.comment}"
+          </p>
+        </div>
+      )}
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        #vn-filters::-webkit-scrollbar { display: none; }
-      `}</style>
+      <NavBar current="/" router={router} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }
