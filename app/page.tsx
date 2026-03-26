@@ -16,14 +16,14 @@ const YELLOW = '#FFD600'
 
 // ── Couleurs par type ──
 const TYPE_META: Record<string, { bg: string; accent: string; emoji: string }> = {
-  film:      { bg: '#2d1810', accent: '#e8845a', emoji: '🎬' },
-  musique:   { bg: '#0f1a2d', accent: '#7b9ee8', emoji: '🎵' },
-  livre:     { bg: '#0f2316', accent: '#6eba7e', emoji: '📚' },
-  podcast:   { bg: '#2d2310', accent: '#e8c45a', emoji: '🎙️' },
-  youtube:   { bg: '#2d0f0f', accent: '#e87b7b', emoji: '▶️' },
-  spectacle: { bg: '#1e1a2d', accent: '#b07be8', emoji: '🎭' },
-  série:     { bg: '#1a2010', accent: '#a0cc7b', emoji: '📺' },
-  autre:     { bg: '#1a1a1a', accent: '#888888', emoji: '✨' },
+  film:      { bg: '#f5ddd4', accent: '#c0502a', emoji: '🎬' },
+  musique:   { bg: '#d4e0f5', accent: '#2a5abf', emoji: '🎵' },
+  livre:     { bg: '#d4f0dc', accent: '#2a8045', emoji: '📚' },
+  podcast:   { bg: '#f5ecd4', accent: '#a07020', emoji: '🎙️' },
+  youtube:   { bg: '#f5d4d4', accent: '#bf2a2a', emoji: '▶️' },
+  spectacle: { bg: '#e8d4f5', accent: '#7a2abf', emoji: '🎭' },
+  série:     { bg: '#dff5d4', accent: '#508020', emoji: '📺' },
+  autre:     { bg: '#e8e8e8', accent: '#555555', emoji: '✨' },
 }
 
 const FILTERS = ['tout', 'film', 'musique', 'livre', 'podcast', 'youtube', 'série']
@@ -118,7 +118,7 @@ export default function Feed() {
   }, [])
 
   // ── Filtres + pagination (24 recos par roue) ──
-  const PAGE_SIZE = 24
+  const PAGE_SIZE = 16
   const filteredRecos = activeFilter === 'tout'
     ? allRecos
     : allRecos.filter(r => r.type === activeFilter)
@@ -405,7 +405,7 @@ export default function Feed() {
                   // Alternance sombre / très sombre, jaune si actif
                   const fill = isActive
                     ? YELLOW
-                    : (i % 2 === 0 ? meta.bg : '#111111')
+                    : (i % 2 === 0 ? meta.bg : '#f0ede4')
 
                   // Position de l'emoji dans le segment
                   const eR = WHEEL_R * 0.60
