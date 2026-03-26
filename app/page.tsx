@@ -66,12 +66,13 @@ export default function Feed() {
   const [allRecos,     setAllRecos]     = useState<Reco[]>([])
   const [contacts,     setContacts]     = useState<Contact[]>([])
   const [activeFilter, setActiveFilter] = useState('tout')
+  const [page,         setPage]         = useState(0)
   const [spinAngle,    setSpinAngle]    = useState(0)
   const [isDragging,   setIsDragging]   = useState(false)
 
-  const pointerDown   = useRef(false)
-  const dragStartX    = useRef(0)
-  const dragStartSpin = useRef(0)
+  const pointerDown = useRef(false)
+  const prevAngle   = useRef(0)
+  const wheelRef    = useRef<HTMLDivElement>(null)
 
   // ── Chargement Supabase ──
   useEffect(() => {
@@ -91,7 +92,7 @@ export default function Feed() {
           .select('id, user_id, type, title, creator, comment, poster_url, url')
           .in('user_id', ids)
           .order('created_at', { ascending: false })
-          .limit(80),
+          .limit(240),
       ])
 
       const colorMap: Record<string, string> = {}
@@ -116,12 +117,30 @@ export default function Feed() {
     load()
   }, [])
 
-  // ── Filtres ──
-  const recos = activeFilter === 'tout'
+  // ── Filtres + pagination (24 recos par roue) ──
+  const PAGE_SIZE = 24
+  const filteredRecos = activeFilter === 'tout'
     ? allRecos
     : allRecos.filter(r => r.type === activeFilter)
+  const totalPages = Math.max(1, Math.ceil(filteredRecos.length / PAGE_SIZE))
+  const recos = filteredRecos.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
-  useEffect(() => { setSpinAngle(0) }, [activeFilter, allRecos])
+  // Reset à la page 0 quand le filtre ou les données changent
+  useEffect(() => {
+    const filtered = activeFilter === 'tout' ? allRecos : allRecos.filter(r => r.type === activeFilter)
+    const N0 = Math.max(MIN_SEGS, Math.min(PAGE_SIZE, filtered.length))
+    setPage(0)
+    setSpinAngle(270 - (360 / N0) / 2)
+  }, [activeFilter, allRecos])
+
+  // ── Navigation entre pages ──
+  const goToPage = (newPage: number) => {
+    if (newPage < 0 || newPage >= totalPages) return
+    const slice = filteredRecos.slice(newPage * PAGE_SIZE, (newPage + 1) * PAGE_SIZE)
+    const N0 = Math.max(MIN_SEGS, slice.length)
+    setPage(newPage)
+    setSpinAngle(270 - (360 / N0) / 2)
+  }
 
   // ── Segments de la roue (répète si < MIN_SEGS) ──
   const segments = recos.length === 0 ? [] :
@@ -154,18 +173,30 @@ export default function Feed() {
     return () => window.removeEventListener('keydown', onKey)
   }, [activeSegIdx, N, segAngle, spinAngle])
 
-  // ── Drag ──
+  // ── Drag rotatif (suit le doigt autour du centre) ──
+  const getAngle = (clientX: number, clientY: number): number => {
+    if (!wheelRef.current) return 0
+    const rect = wheelRef.current.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top  + rect.height / 2
+    return Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI
+  }
+
   const onPointerDown = (e: React.PointerEvent) => {
-    pointerDown.current  = true
-    dragStartX.current   = e.clientX
-    dragStartSpin.current = spinAngle
+    pointerDown.current = true
+    prevAngle.current   = getAngle(e.clientX, e.clientY)
     setIsDragging(true)
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   }
   const onPointerMove = (e: React.PointerEvent) => {
     if (!pointerDown.current) return
-    const dx = e.clientX - dragStartX.current
-    setSpinAngle(dragStartSpin.current + dx * 0.55)
+    const angle = getAngle(e.clientX, e.clientY)
+    let delta = angle - prevAngle.current
+    // Corrige le saut ±180° lors du passage par la discontinuité atan2
+    if (delta >  180) delta -= 360
+    if (delta < -180) delta += 360
+    prevAngle.current = angle
+    setSpinAngle(prev => prev + delta)
   }
   const onPointerUp = () => {
     if (!pointerDown.current) return
@@ -292,20 +323,23 @@ export default function Feed() {
       {/* ── Roue ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 0 8px', gap: 0 }}>
 
-        {/* Flèche gauche */}
+        {/* Flèche gauche — recos plus récentes */}
         <button
-          onClick={() => N > 0 && snapTo((activeSegIdx - 1 + N) % N)}
+          onClick={() => goToPage(page - 1)}
+          disabled={page === 0}
           style={{
             width: 40, height: 40, flexShrink: 0,
             border: `2px solid ${INK}`, borderRadius: 2,
-            background: '#fff', boxShadow: `3px 3px 0 ${INK}`,
-            cursor: 'pointer', fontSize: 18, fontWeight: 700,
+            background: page === 0 ? 'transparent' : '#fff',
+            boxShadow: page === 0 ? 'none' : `3px 3px 0 ${INK}`,
+            cursor: page === 0 ? 'default' : 'pointer',
+            fontSize: 18, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             marginRight: 16,
-            transition: 'transform 0.1s, box-shadow 0.1s',
+            opacity: page === 0 ? 0.25 : 1,
           }}
-          onMouseDown={e => { e.currentTarget.style.transform = 'translate(2px,2px)'; e.currentTarget.style.boxShadow = 'none' }}
-          onMouseUp={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = `3px 3px 0 ${INK}` }}
+          onMouseDown={e => { if (page > 0) { e.currentTarget.style.transform = 'translate(2px,2px)'; e.currentTarget.style.boxShadow = 'none' } }}
+          onMouseUp={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = page > 0 ? `3px 3px 0 ${INK}` : 'none' }}
         >←</button>
 
         <div style={{ position: 'relative', width: D, height: D }}>
@@ -327,6 +361,7 @@ export default function Feed() {
 
           {/* ── Zone de drag ── */}
           <div
+            ref={wheelRef}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -411,23 +446,39 @@ export default function Feed() {
           </div>
         </div>
 
-        {/* Flèche droite */}
+        {/* Flèche droite — recos plus anciennes */}
         <button
-          onClick={() => N > 0 && snapTo((activeSegIdx + 1) % N)}
+          onClick={() => goToPage(page + 1)}
+          disabled={page >= totalPages - 1}
           style={{
             width: 40, height: 40, flexShrink: 0,
             border: `2px solid ${INK}`, borderRadius: 2,
-            background: '#fff', boxShadow: `3px 3px 0 ${INK}`,
-            cursor: 'pointer', fontSize: 18, fontWeight: 700,
+            background: page >= totalPages - 1 ? 'transparent' : '#fff',
+            boxShadow: page >= totalPages - 1 ? 'none' : `3px 3px 0 ${INK}`,
+            cursor: page >= totalPages - 1 ? 'default' : 'pointer',
+            fontSize: 18, fontWeight: 700,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             marginLeft: 16,
-            transition: 'transform 0.1s, box-shadow 0.1s',
+            opacity: page >= totalPages - 1 ? 0.25 : 1,
           }}
-          onMouseDown={e => { e.currentTarget.style.transform = 'translate(2px,2px)'; e.currentTarget.style.boxShadow = 'none' }}
-          onMouseUp={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = `3px 3px 0 ${INK}` }}
+          onMouseDown={e => { if (page < totalPages - 1) { e.currentTarget.style.transform = 'translate(2px,2px)'; e.currentTarget.style.boxShadow = 'none' } }}
+          onMouseUp={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = page < totalPages - 1 ? `3px 3px 0 ${INK}` : 'none' }}
         >→</button>
 
       </div>
+
+      {/* ── Indicateur de page ── */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '4px 0 0' }}>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <div key={i} onClick={() => goToPage(i)} style={{
+              width: i === page ? 18 : 6, height: 6, borderRadius: 3,
+              background: i === page ? INK : 'rgba(10,10,10,0.2)',
+              cursor: 'pointer', transition: 'all 0.2s',
+            }} />
+          ))}
+        </div>
+      )}
 
       {/* ── Contacts ── */}
       {contacts.length > 0 && (
